@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"
+    />
+    <meta
+      name="description"
+      content="适合儿童的软萌免疫系统竖屏射击游戏。"
+    />
+    <meta name="theme-color" content="#191548" />
+    <title>病毒大扫除 · 免疫小卫士</title>
+  </head>
+  <body>
+    <main id="app">
+      <section id="game-shell" aria-label="病毒大扫除游戏">
+        <div id="game-canvas" aria-hidden="true"></div>
+
+        <div id="hud" class="hud is-hidden" aria-live="polite">
+          <div class="hud-top">
+            <div id="hearts" class="glass-pill" aria-label="生命值">💙💙💙</div>
+            <div class="stage-chip">
+              <span id="stage-number">第 1 关</span>
+              <strong id="stage-name">鼻腔花园</strong>
+            </div>
+            <button id="pause-button" class="icon-button" aria-label="暂停游戏">
+              Ⅱ
+            </button>
+          </div>
+          <div class="progress-track" aria-label="关卡进度">
+            <div id="progress-fill" class="progress-fill"></div>
+          </div>
+          <div class="score-row">
+            <span>✨ <strong id="score">0</strong></span>
+            <span id="power-label">抗体 Lv.1</span>
+          </div>
+        </div>
+
+        <section id="home-screen" class="screen home-screen">
+          <div class="home-glow"></div>
+          <p class="eyebrow">IMMUNE HEROES</p>
+          <div class="title-lockup">
+            <span class="title-bubble">病毒</span>
+            <h1>大扫除</h1>
+          </div>
+          <p class="home-subtitle">驾驶免疫飞船，发射抗体泡泡！</p>
+          <div class="hero-orbit" aria-hidden="true">
+            <span class="orbit-dot dot-one"></span>
+            <span class="orbit-dot dot-two"></span>
+            <img
+              class="home-hero"
+              src="/assets/generated/guardian.png"
+              alt=""
+            />
+          </div>
+          <div class="feature-row" aria-hidden="true">
+            <span>☝️ 单指拖动</span>
+            <span>🫧 自动发射</span>
+            <span>💙 轻松复活</span>
+          </div>
+          <button id="start-button" class="primary-button" disabled>
+            开始净化
+          </button>
+          <div class="home-footer">
+            <button id="home-sound" class="text-button" aria-label="切换声音">
+              🔊 声音开
+            </button>
+            <span id="best-score">最高分 0</span>
+          </div>
+        </section>
+
+        <div id="tutorial" class="tutorial is-hidden" aria-live="assertive">
+          <div class="finger">☝️</div>
+          <strong>拖动小卫士</strong>
+          <span>它会自动发射抗体泡泡</span>
+        </div>
+
+        <div id="toast" class="toast is-hidden" aria-live="polite"></div>
+
+        <section
+          id="modal"
+          class="modal is-hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+        >
+          <div class="modal-card">
+            <div id="modal-icon" class="modal-icon">🫧</div>
+            <p id="modal-kicker" class="modal-kicker">小知识</p>
+            <h2 id="modal-title">鼻子小卫士</h2>
+            <p id="modal-body"></p>
+            <div id="modal-actions" class="modal-actions"></div>
+          </div>
+        </section>
+
+        <section id="pause-panel" class="modal is-hidden" role="dialog">
+          <div class="modal-card pause-card">
+            <div class="modal-icon">⏸️</div>
+            <h2>休息一下</h2>
+            <p>小卫士会在这里等你。</p>
+            <div class="modal-actions">
+              <button id="resume-button" class="primary-button">继续净化</button>
+              <button id="pause-sound" class="secondary-button">🔊 声音开</button>
+              <button id="restart-button" class="text-button">重新开始</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

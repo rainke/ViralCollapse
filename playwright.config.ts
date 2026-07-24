@@ -7,10 +7,10 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:4173',
     trace: 'retain-on-failure',
-    ...devices['iPhone 13'],
+    ...devices['Pixel 7'],
   },
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1',
+    command: 'pnpm dev --host 127.0.0.1 --port 4173',
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: true,
   },
