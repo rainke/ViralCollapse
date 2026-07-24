@@ -1,0 +1,32 @@
+{
+  "name": "ViralCollapse",
+  "version": "1.0.0",
+  "description": "A child-friendly portrait shooter about the immune system.",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "keywords": [
+    "game",
+    "phaser",
+    "children"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "@vitest/coverage-v8": "^4.0.16",
+    "typescript": "^5.8.3",
+    "vite": "^8.0.0",
+    "vitest": "^4.0.16"
+  },
+  "packageManager": "pnpm@11.0.9",
+  "type": "module"
+}
