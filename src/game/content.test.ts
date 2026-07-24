@@ -25,9 +25,17 @@ describe('level content', () => {
     expect(getLevel(99)).toBe(LEVELS[0])
   })
 
-  it('introduces faster and tougher virus types gradually', () => {
-    expect(getEnemyForLevel(1, 0.99)).toBe('basic')
-    expect(getEnemyForLevel(2, 0.95)).toBe('fast')
-    expect(getEnemyForLevel(3, 0.95)).toBe('tough')
+  it('offers five visually different virus types across the run', () => {
+    const sampledTypes = new Set([
+      getEnemyForLevel(1, 0.1),
+      getEnemyForLevel(1, 0.95),
+      getEnemyForLevel(2, 0.5),
+      getEnemyForLevel(2, 0.95),
+      getEnemyForLevel(3, 0.95),
+    ])
+
+    expect(sampledTypes).toEqual(
+      new Set(['basic', 'wobbly', 'fast', 'splitter', 'tough']),
+    )
   })
 })
