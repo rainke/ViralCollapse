@@ -431,6 +431,8 @@ button:focus-visible {
   padding: 22px;
   background: rgb(18 13 54 / 78%);
   backdrop-filter: blur(12px);
+  opacity: 1;
+  transition: opacity 280ms ease-out;
 }
 
 .modal-card {
@@ -444,6 +446,20 @@ button:focus-visible {
     radial-gradient(circle at 50% 0, #fff, transparent 34%),
     linear-gradient(180deg, #f6f3ff, #dcd8ff);
   box-shadow: 0 24px 70px rgb(0 0 0 / 35%), inset 0 1px 0 #fff;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    opacity 240ms ease-out,
+    transform 360ms cubic-bezier(0.2, 0.9, 0.25, 1.15);
+}
+
+.modal.is-entering {
+  opacity: 0;
+}
+
+.modal.is-entering .modal-card {
+  opacity: 0;
+  transform: translateY(24px) scale(0.92);
 }
 
 .modal-icon {
@@ -586,5 +602,6 @@ button:focus-visible {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

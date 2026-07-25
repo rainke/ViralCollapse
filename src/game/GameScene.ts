@@ -13,6 +13,7 @@ import {
 
 const WIDTH = 390
 const HEIGHT = 844
+const PLAYER_DEATH_DELAY = 700
 
 type EnemySprite = Phaser.Physics.Arcade.Image & {
   enemyType?: EnemyType
@@ -208,7 +209,11 @@ export class GameScene extends Phaser.Scene {
 
   revive(): void {
     this.state = revivePlayer(this.state, this.time.now)
-    this.player.setAlpha(1).setPosition(WIDTH / 2, HEIGHT - 132)
+    this.player
+      .setActive(true)
+      .setVisible(true)
+      .setAlpha(1)
+      .setPosition(WIDTH / 2, HEIGHT - 132)
     this.targetX = WIDTH / 2
     this.targetY = HEIGHT - 132
     this.transitioning = false
@@ -447,6 +452,22 @@ export class GameScene extends Phaser.Scene {
 
     this.state = next
     this.damageTaken += 1
+    this.cameras.main.shake(160, 0.008)
+    this.emitHud()
+    this.emitEvent('viral:sound', {
+      kind: this.state.hearts === 0 ? 'death' : 'hit',
+    })
+
+    if (this.state.hearts === 0) {
+      this.transitioning = true
+      this.physics.world.pause()
+      this.explodePlayer(player)
+      this.time.delayedCall(PLAYER_DEATH_DELAY, () =>
+        this.emitEvent('viral:revive'),
+      )
+      return
+    }
+
     player.setTintFill(0xffffff)
     this.tweens.add({
       targets: player,
@@ -459,15 +480,6 @@ export class GameScene extends Phaser.Scene {
         player.setAlpha(1)
       },
     })
-    this.cameras.main.shake(160, 0.008)
-    this.emitHud()
-    this.emitEvent('viral:sound', { kind: 'hit' })
-
-    if (this.state.hearts === 0) {
-      this.transitioning = true
-      this.physics.world.pause()
-      this.emitEvent('viral:revive')
-    }
   }
 
   private maybeDropPowerup(x: number, y: number): void {
@@ -660,6 +672,98 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => dot.destroy(),
       })
     }
+  }
+
+  private explodePlayer(player: Phaser.Physics.Arcade.Image): void {
+    const effect = this.add
+      .container(player.x, player.y)
+      .setName('player-death-effect')
+      .setDepth(9)
+    const glow = this.add
+      .circle(0, 0, 52, 0x71edff, 0.4)
+      .setScale(0.35)
+    const core = this.add.circle(0, 0, 24, 0xffffff, 0.95)
+    const ring = this.add
+      .circle(0, 0, 34, 0xffee79, 0)
+      .setStrokeStyle(7, 0xffee79, 0.95)
+      .setScale(0.5)
+    effect.add([glow, core, ring])
+
+    const colors = [0x70efff, 0xffef78, 0xffffff, 0xa68bff]
+    for (let index = 0; index < 18; index += 1) {
+      const angle = (Math.PI * 2 * index) / 18
+      const distance = Phaser.Math.Between(62, 116)
+      const fragment = this.add
+        .triangle(
+          0,
+          0,
+          -Phaser.Math.Between(3, 6),
+          6,
+          0,
+          -Phaser.Math.Between(7, 13),
+          Phaser.Math.Between(3, 6),
+          6,
+          colors[index % colors.length],
+          1,
+        )
+        .setAngle(Phaser.Math.RadToDeg(angle) + 90)
+      effect.add(fragment)
+      this.tweens.add({
+        targets: fragment,
+        x: Math.cos(angle) * distance,
+        y: Math.sin(angle) * distance,
+        angle: fragment.angle + Phaser.Math.Between(-100, 100),
+        alpha: 0,
+        scale: 0.25,
+        duration: Phaser.Math.Between(420, 650),
+        ease: 'Cubic.easeOut',
+      })
+    }
+
+    this.tweens.add({
+      targets: glow,
+      scale: 2.1,
+      alpha: 0,
+      duration: 480,
+      ease: 'Cubic.easeOut',
+    })
+    this.tweens.add({
+      targets: core,
+      scale: 2.5,
+      alpha: 0,
+      duration: 280,
+      ease: 'Quad.easeOut',
+    })
+    this.tweens.add({
+      targets: ring,
+      scale: 2.3,
+      alpha: 0,
+      duration: 560,
+      ease: 'Cubic.easeOut',
+    })
+
+    const scaleX = player.scaleX
+    const scaleY = player.scaleY
+    this.tweens.killTweensOf(player)
+    player.setTintFill(0xffffff)
+    this.tweens.add({
+      targets: player,
+      alpha: 0,
+      scaleX: scaleX * 1.18,
+      scaleY: scaleY * 1.18,
+      duration: 150,
+      ease: 'Back.easeIn',
+      onComplete: () => {
+        player
+          .setActive(false)
+          .setVisible(false)
+          .setAlpha(1)
+          .setScale(scaleX, scaleY)
+          .clearTint()
+      },
+    })
+
+    this.time.delayedCall(PLAYER_DEATH_DELAY, () => effect.destroy(true))
   }
 
   private spawnSplitFragments(x: number, y: number): void {

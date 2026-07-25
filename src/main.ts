@@ -35,6 +35,7 @@ class SoundSynth {
       pop: [680, 860, 0.04],
       clean: [520, 960, 0.1],
       hit: [180, 95, 0.18],
+      death: [220, 60, 0.48],
       power: [480, 1_020, 0.28],
       level: [440, 880, 0.38],
       boss: [160, 120, 0.08],
@@ -43,7 +44,10 @@ class SoundSynth {
     const [from, to, duration] = presets[kind] ?? presets.pop
     const oscillator = this.context.createOscillator()
     const gain = this.context.createGain()
-    oscillator.type = kind === 'hit' || kind === 'boss' ? 'triangle' : 'sine'
+    oscillator.type =
+      kind === 'hit' || kind === 'death' || kind === 'boss'
+        ? 'triangle'
+        : 'sine'
     oscillator.frequency.setValueAtTime(from, this.context.currentTime)
     oscillator.frequency.exponentialRampToValueAtTime(
       Math.max(40, to),
@@ -143,7 +147,16 @@ function showToast(message: string, duration = 1_700): void {
 
 function hideModal(): void {
   modal.classList.add('is-hidden')
+  modal.classList.remove('is-entering')
   modalActions.replaceChildren()
+}
+
+function showModal(): void {
+  modal.classList.add('is-entering')
+  modal.classList.remove('is-hidden')
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => modal.classList.remove('is-entering'))
+  })
 }
 
 function button(
@@ -204,7 +217,7 @@ function showLevelComplete(detail: {
     grid.append(item)
   }
   modalActions.append(speakButton, grid)
-  modal.classList.remove('is-hidden')
+  showModal()
   if (detail.bossNext) showToast('选一个升级，然后挑战病毒王！', 2_400)
 }
 
@@ -219,7 +232,7 @@ function showRevive(): void {
       scene().revive()
     }),
   )
-  modal.classList.remove('is-hidden')
+  showModal()
 }
 
 function showVictory(detail: {
@@ -245,7 +258,7 @@ function showVictory(detail: {
       home.classList.remove('is-hidden')
     }),
   )
-  modal.classList.remove('is-hidden')
+  showModal()
 }
 
 startButton.addEventListener('click', () => {
