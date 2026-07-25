@@ -109,6 +109,10 @@ const game = new Phaser.Game({
   scene: [GameScene],
 })
 
+if (import.meta.env.DEV) {
+  Object.assign(window, { __viralGame: game })
+}
+
 function scene(): GameScene {
   return game.scene.getScene('game') as GameScene
 }

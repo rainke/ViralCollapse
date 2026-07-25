@@ -55,6 +55,26 @@ perfectly flat solid #ff00ff chroma-key background. No shadows, text, realistic
 pathogen details or extra characters.
 ```
 
+### Wobbly, splitting and shield viruses
+
+```text
+Use the existing blue virus as a style reference only. Match the polished soft
+3D toy rendering, friendly face scale, lighting and top-down three-quarter game
+view while changing the silhouette and palette.
+
+Wobbly: one lime-green four-lobed jelly clover with two tiny antenna nubs on a
+flat #ff00ff background.
+
+Splitting: one coral-pink connected double-bubble character whose silhouette
+clearly suggests division, on a flat #00ff00 background.
+
+Shield: one golden-yellow round virus wearing a thick translucent cyan
+bubble-ring shell, on a flat #ff00ff background.
+
+Exactly one centered character per image with generous padding. No shadows,
+text, teeth, gore, realistic pathogen details, watermarks or extra characters.
+```
+
 ### Virus bubble king
 
 ```text

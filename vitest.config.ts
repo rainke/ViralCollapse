@@ -5,7 +5,11 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/game/model.ts', 'src/game/content.ts'],
+      include: [
+        'src/game/model.ts',
+        'src/game/content.ts',
+        'src/game/collision.ts',
+      ],
       thresholds: {
         branches: 80,
         functions: 80,

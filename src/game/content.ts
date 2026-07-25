@@ -1,4 +1,9 @@
-export type EnemyType = 'basic' | 'fast' | 'tough'
+export type EnemyType =
+  | 'basic'
+  | 'fast'
+  | 'wobbly'
+  | 'splitter'
+  | 'tough'
 
 export interface LevelConfig {
   id: number
@@ -68,7 +73,17 @@ export function getEnemyForLevel(
   level: number,
   randomValue: number,
 ): EnemyType {
-  if (level >= 3 && randomValue >= 0.82) return 'tough'
-  if (level >= 2 && randomValue >= 0.68) return 'fast'
+  if (level === 1) return randomValue >= 0.72 ? 'wobbly' : 'basic'
+  if (level === 2) {
+    if (randomValue >= 0.82) return 'splitter'
+    if (randomValue >= 0.62) return 'wobbly'
+    if (randomValue >= 0.38) return 'fast'
+    return 'basic'
+  }
+
+  if (randomValue >= 0.8) return 'tough'
+  if (randomValue >= 0.62) return 'splitter'
+  if (randomValue >= 0.42) return 'wobbly'
+  if (randomValue >= 0.22) return 'fast'
   return 'basic'
 }

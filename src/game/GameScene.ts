@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { HITBOXES, type SourceCircle } from './collision'
 import { getEnemyForLevel, getLevel, type EnemyType } from './content'
 import {
   applyDamage,
@@ -58,6 +59,9 @@ export class GameScene extends Phaser.Scene {
     this.load.image('guardian', '/assets/generated/guardian.png')
     this.load.image('virus-blue', '/assets/generated/virus-blue.png')
     this.load.image('virus-fast', '/assets/generated/virus-fast.png')
+    this.load.image('virus-wobbly', '/assets/generated/virus-wobbly.png')
+    this.load.image('virus-splitter', '/assets/generated/virus-splitter.png')
+    this.load.image('virus-shield', '/assets/generated/virus-shield.png')
     this.load.image('virus-boss', '/assets/generated/virus-boss.png')
   }
 
@@ -83,8 +87,7 @@ export class GameScene extends Phaser.Scene {
       .setDepth(5)
       .setCollideWorldBounds(true)
     const playerBody = this.player.body as Phaser.Physics.Arcade.Body
-    playerBody.setSize(48, 52)
-    playerBody.setOffset(24, 46)
+    this.setCircularBody(playerBody, HITBOXES.player)
 
     this.physics.add.overlap(
       this.bullets,
@@ -234,7 +237,13 @@ export class GameScene extends Phaser.Scene {
   private spawnEnemy(): void {
     const level = getLevel(this.state.level)
     const type = getEnemyForLevel(level.id, Math.random())
-    const texture = type === 'fast' ? 'virus-fast' : 'virus-blue'
+    const texture = {
+      basic: 'virus-blue',
+      fast: 'virus-fast',
+      wobbly: 'virus-wobbly',
+      splitter: 'virus-splitter',
+      tough: 'virus-shield',
+    }[type]
     const enemy = this.enemies.get(
       Phaser.Math.Between(48, WIDTH - 48),
       -70,
@@ -243,14 +252,47 @@ export class GameScene extends Phaser.Scene {
     if (!enemy) return
 
     const config = {
-      basic: { health: 1, points: 10, scale: [68, 102], speed: 1 },
-      fast: { health: 1, points: 18, scale: [56, 84], speed: 1.65 },
-      tough: { health: 3, points: 30, scale: [82, 123], speed: 0.78 },
+      basic: {
+        health: 1,
+        points: 10,
+        scale: [68, 102],
+        speed: 1,
+        amplitude: 42,
+      },
+      fast: {
+        health: 1,
+        points: 18,
+        scale: [56, 84],
+        speed: 1.65,
+        amplitude: 28,
+      },
+      wobbly: {
+        health: 2,
+        points: 22,
+        scale: [74, 111],
+        speed: 0.92,
+        amplitude: 76,
+      },
+      splitter: {
+        health: 2,
+        points: 28,
+        scale: [84, 126],
+        speed: 0.86,
+        amplitude: 34,
+      },
+      tough: {
+        health: 4,
+        points: 40,
+        scale: [86, 129],
+        speed: 0.72,
+        amplitude: 24,
+      },
     }[type]
 
     enemy
       .setActive(true)
       .setVisible(true)
+      .setTexture(texture)
       .setDisplaySize(config.scale[0], config.scale[1])
       .setDepth(3)
       .setAlpha(0)
@@ -263,13 +305,13 @@ export class GameScene extends Phaser.Scene {
       originX: enemy.x,
       wave: Phaser.Math.FloatBetween(0.0015, 0.0032),
       phase: Phaser.Math.FloatBetween(0, Math.PI * 2),
+      amplitude: config.amplitude,
     })
-    if (type === 'tough') enemy.setTint(0x9ff5ff)
-    else enemy.clearTint()
+    enemy.clearTint()
 
     const body = enemy.body as Phaser.Physics.Arcade.Body
     body.enable = true
-    body.setSize(type === 'tough' ? 58 : 46, type === 'fast' ? 48 : 54)
+    this.setCircularBody(body, HITBOXES[type])
     body.setVelocityY(enemy.getData('speed') as number)
     this.tweens.add({
       targets: enemy,
@@ -285,8 +327,9 @@ export class GameScene extends Phaser.Scene {
       const wave = enemy.getData('wave') as number
       const phase = enemy.getData('phase') as number
       const originX = enemy.getData('originX') as number
+      const amplitude = (enemy.getData('amplitude') as number | undefined) ?? 42
       enemy.x = Phaser.Math.Clamp(
-        originX + Math.sin(time * wave + phase) * 42,
+        originX + Math.sin(time * wave + phase) * amplitude,
         34,
         WIDTH - 34,
       )
@@ -345,11 +388,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     const points = enemy.getData('points') as number
+    const shouldSplit = enemy.enemyType === 'splitter'
     this.state = recordVirusCleaned(this.state, points)
     const x = enemy.x
     const y = enemy.y
     this.disableObject(enemy)
     this.cleanBurst(x, y)
+    if (shouldSplit) this.spawnSplitFragments(x, y)
     this.maybeDropPowerup(x, y)
     this.emitHud()
     this.emitEvent('viral:sound', { kind: 'clean' })
@@ -437,6 +482,7 @@ export class GameScene extends Phaser.Scene {
     powerup
       .setActive(true)
       .setVisible(true)
+      .setTexture(texture)
       .setData('kind', kind)
       .setDepth(4)
     const body = powerup.body as Phaser.Physics.Arcade.Body
@@ -491,8 +537,7 @@ export class GameScene extends Phaser.Scene {
       .setDepth(3)
       .setData('boss', true)
     const body = this.boss.body as Phaser.Physics.Arcade.Body
-    body.setSize(142, 132)
-    body.setOffset(31, 70)
+    this.setCircularBody(body, HITBOXES.boss)
     body.setImmovable(true)
     this.enemies.add(this.boss)
     this.emitEvent('viral:toast', { message: '最终挑战 · 病毒泡泡王' })
@@ -615,6 +660,51 @@ export class GameScene extends Phaser.Scene {
         onComplete: () => dot.destroy(),
       })
     }
+  }
+
+  private spawnSplitFragments(x: number, y: number): void {
+    for (const direction of [-1, 1]) {
+      const fragment = this.enemies.get(
+        x + direction * 24,
+        y,
+        'virus-splitter',
+      ) as EnemySprite | null
+      if (!fragment) continue
+
+      fragment
+        .setActive(true)
+        .setVisible(true)
+        .setTexture('virus-splitter')
+        .setDisplaySize(44, 66)
+        .setDepth(3)
+        .setAlpha(1)
+        .setDataEnabled()
+      fragment.enemyType = 'basic'
+      fragment.setData({
+        health: 1,
+        points: 6,
+        speed: 148,
+        originX: fragment.x,
+        wave: 0.004,
+        phase: direction > 0 ? 0 : Math.PI,
+        amplitude: 30,
+      })
+      const body = fragment.body as Phaser.Physics.Arcade.Body
+      body.enable = true
+      this.setCircularBody(body, HITBOXES.splitter)
+      body.setVelocityY(148)
+    }
+  }
+
+  private setCircularBody(
+    body: Phaser.Physics.Arcade.Body,
+    hitbox: SourceCircle,
+  ): void {
+    body.setCircle(
+      hitbox.radius,
+      hitbox.centerX - hitbox.radius,
+      hitbox.centerY - hitbox.radius,
+    )
   }
 
   private createGeneratedTextures(): void {

@@ -38,4 +38,23 @@ describe('level content', () => {
       new Set(['basic', 'wobbly', 'fast', 'splitter', 'tough']),
     )
   })
+
+  it.each([
+    [1, 0.1, 'basic'],
+    [1, 0.72, 'wobbly'],
+    [2, 0.1, 'basic'],
+    [2, 0.38, 'fast'],
+    [2, 0.62, 'wobbly'],
+    [2, 0.82, 'splitter'],
+    [3, 0.1, 'basic'],
+    [3, 0.22, 'fast'],
+    [3, 0.42, 'wobbly'],
+    [3, 0.62, 'splitter'],
+    [3, 0.8, 'tough'],
+  ] as const)(
+    'maps level %i at random value %f to %s',
+    (level, randomValue, expected) => {
+      expect(getEnemyForLevel(level, randomValue)).toBe(expected)
+    },
+  )
 })
