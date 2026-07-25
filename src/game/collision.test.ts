@@ -9,11 +9,17 @@ describe('sprite hitboxes', () => {
   it('converts source-image hitboxes into useful world-space circles', () => {
     const player = getScaledCircle(HITBOXES.player, 96)
     const basicVirus = getScaledCircle(HITBOXES.basic, 68)
-    const boss = getScaledCircle(HITBOXES.boss, 205)
+    const influenza = getScaledCircle(HITBOXES.influenza, 78)
+    const adenovirus = getScaledCircle(HITBOXES.adenovirus, 84)
+    const ebolaBoss = getScaledCircle(HITBOXES.ebolaBoss, 220)
+    const coronaBoss = getScaledCircle(HITBOXES.coronaBoss, 205)
 
     expect(player.radius).toBeGreaterThanOrEqual(22)
     expect(basicVirus.radius).toBeGreaterThanOrEqual(21)
-    expect(boss.radius).toBeGreaterThanOrEqual(68)
+    expect(influenza.radius).toBeGreaterThanOrEqual(22)
+    expect(adenovirus.radius).toBeGreaterThanOrEqual(24)
+    expect(ebolaBoss.radius).toBeGreaterThanOrEqual(58)
+    expect(coronaBoss.radius).toBeGreaterThanOrEqual(68)
   })
 
   it('keeps visual overlap small before player and virus collide', () => {
