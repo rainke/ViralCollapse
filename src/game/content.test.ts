@@ -1,16 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { LEVELS, getEnemyForLevel, getLevel } from './content'
+import {
+  LEVELS,
+  getEnemyForLevel,
+  getLevel,
+  getNextLevelId,
+} from './content'
 
 describe('level content', () => {
-  it('ships three increasingly challenging child-sized stages', () => {
-    expect(LEVELS).toHaveLength(3)
+  it('ships six child-sized stages with boss fights at three and six', () => {
+    expect(LEVELS).toHaveLength(6)
     expect(LEVELS.map((level) => level.name)).toEqual([
       '鼻腔花园',
       '呼吸通道',
-      '免疫基地',
+      '埃博拉峡谷',
+      '细胞迷宫',
+      '免疫长廊',
+      '冠状王座',
     ])
+    expect(
+      LEVELS.filter((level) => level.mode === 'boss').map(
+        (level) => level.id,
+      ),
+    ).toEqual([3, 6])
+    expect(LEVELS[2].boss?.type).toBe('ebola')
+    expect(LEVELS[5].boss?.type).toBe('corona')
     expect(LEVELS[1].enemySpeed).toBeGreaterThan(LEVELS[0].enemySpeed)
-    expect(LEVELS[2].cleanTarget).toBeGreaterThan(LEVELS[1].cleanTarget)
+    expect(LEVELS[4].cleanTarget).toBeGreaterThan(LEVELS[3].cleanTarget)
   })
 
   it('keeps the science copy short and actionable', () => {
@@ -25,17 +40,38 @@ describe('level content', () => {
     expect(getLevel(99)).toBe(LEVELS[0])
   })
 
-  it('offers five visually different virus types across the run', () => {
+  it('advances through all six stages and stops after the final boss', () => {
+    expect(LEVELS.map((level) => getNextLevelId(level.id))).toEqual([
+      2,
+      3,
+      4,
+      5,
+      6,
+      null,
+    ])
+  })
+
+  it('adds recognizable influenza and adenovirus enemies to the run', () => {
     const sampledTypes = new Set([
       getEnemyForLevel(1, 0.1),
       getEnemyForLevel(1, 0.95),
       getEnemyForLevel(2, 0.5),
       getEnemyForLevel(2, 0.95),
-      getEnemyForLevel(3, 0.95),
+      getEnemyForLevel(4, 0.5),
+      getEnemyForLevel(4, 0.95),
+      getEnemyForLevel(5, 0.95),
     ])
 
     expect(sampledTypes).toEqual(
-      new Set(['basic', 'wobbly', 'fast', 'splitter', 'tough']),
+      new Set([
+        'basic',
+        'wobbly',
+        'fast',
+        'splitter',
+        'tough',
+        'influenza',
+        'adenovirus',
+      ]),
     )
   })
 
@@ -46,11 +82,13 @@ describe('level content', () => {
     [2, 0.38, 'fast'],
     [2, 0.62, 'wobbly'],
     [2, 0.82, 'splitter'],
-    [3, 0.1, 'basic'],
-    [3, 0.22, 'fast'],
-    [3, 0.42, 'wobbly'],
-    [3, 0.62, 'splitter'],
-    [3, 0.8, 'tough'],
+    [4, 0.1, 'basic'],
+    [4, 0.2, 'fast'],
+    [4, 0.38, 'influenza'],
+    [4, 0.56, 'wobbly'],
+    [4, 0.72, 'splitter'],
+    [4, 0.86, 'adenovirus'],
+    [5, 0.9, 'tough'],
   ] as const)(
     'maps level %i at random value %f to %s',
     (level, randomValue, expected) => {

@@ -105,6 +105,48 @@ test('player, bullets and viruses use real visible collision areas', async ({
   await expect(page.locator('#hearts')).toContainText('💙💙🤍')
 })
 
+test('boss stages use distinct book-inspired silhouettes and collision areas', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始净化' }).click()
+
+  const bosses = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      boss: {
+        body: { width: number }
+        texture: { key: string }
+      }
+      startLevel: (level: number) => void
+    }
+
+    scene.startLevel(3)
+    const third = {
+      texture: scene.boss.texture.key,
+      bodyWidth: scene.boss.body.width,
+    }
+    scene.startLevel(6)
+    const sixth = {
+      texture: scene.boss.texture.key,
+      bodyWidth: scene.boss.body.width,
+    }
+    return { third, sixth }
+  })
+
+  expect(bosses.third.texture).toBe('virus-ebola-boss')
+  expect(bosses.sixth.texture).toBe('virus-corona-boss')
+  expect(bosses.third.bodyWidth).toBeGreaterThan(80)
+  expect(bosses.sixth.bodyWidth).toBeGreaterThan(80)
+})
+
 test('player death explodes before the revive dialog transitions in', async ({
   page,
 }) => {
