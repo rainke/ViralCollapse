@@ -104,3 +104,63 @@ test('player, bullets and viruses use real visible collision areas', async ({
 
   await expect(page.locator('#hearts')).toContainText('💙💙🤍')
 })
+
+test('player death explodes before the revive dialog transitions in', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始净化' }).click()
+
+  const deathState = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      state: {
+        hearts: number
+        invulnerableUntil: number
+      }
+      player: unknown
+      enemies: {
+        getChildren: () => unknown[]
+      }
+      children: {
+        getByName: (name: string) => unknown
+      }
+      spawnEnemy: () => void
+      onPlayerHitsDanger: (player: unknown, danger: unknown) => void
+    }
+
+    scene.state.hearts = 1
+    scene.state.invulnerableUntil = 0
+    scene.spawnEnemy()
+    scene.onPlayerHitsDanger(scene.player, scene.enemies.getChildren()[0])
+
+    return {
+      reviveHidden: document.querySelector('#modal')?.classList.contains('is-hidden'),
+      explosionVisible: Boolean(
+        scene.children.getByName('player-death-effect'),
+      ),
+    }
+  })
+
+  expect(deathState).toEqual({
+    reviveHidden: true,
+    explosionVisible: true,
+  })
+
+  const reviveHeading = page.getByRole('heading', {
+    name: '小卫士充好电啦',
+  })
+  await expect(reviveHeading).toBeVisible({ timeout: 2_000 })
+
+  const transitionDuration = await page.locator('#modal').evaluate((modal) =>
+    Number.parseFloat(getComputedStyle(modal).transitionDuration),
+  )
+  expect(transitionDuration).toBeGreaterThan(0)
+})
