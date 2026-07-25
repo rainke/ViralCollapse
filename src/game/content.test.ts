@@ -88,6 +88,12 @@ describe('level content', () => {
     [4, 0.56, 'wobbly'],
     [4, 0.72, 'splitter'],
     [4, 0.86, 'adenovirus'],
+    [5, 0.1, 'basic'],
+    [5, 0.12, 'fast'],
+    [5, 0.26, 'wobbly'],
+    [5, 0.42, 'splitter'],
+    [5, 0.58, 'influenza'],
+    [5, 0.74, 'adenovirus'],
     [5, 0.9, 'tough'],
   ] as const)(
     'maps level %i at random value %f to %s',

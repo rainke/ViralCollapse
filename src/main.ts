@@ -310,7 +310,7 @@ window.addEventListener('viral:hud', ((event: CustomEvent) => {
     '💙'.repeat(detail.hearts) + '🤍'.repeat(detail.maxHearts - detail.hearts)
   element('#score').textContent = String(detail.score)
   element('#stage-number').textContent = detail.boss
-    ? '最终挑战'
+    ? `第 ${detail.level} 关 · BOSS`
     : `第 ${detail.level} 关`
   element('#stage-name').textContent = detail.levelName
   element<HTMLElement>('#progress-fill').style.width =

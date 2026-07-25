@@ -13,7 +13,10 @@ export const HITBOXES = {
   wobbly: { radius: 330, centerX: 512, centerY: 780 },
   splitter: { radius: 330, centerX: 512, centerY: 770 },
   tough: { radius: 350, centerX: 512, centerY: 780 },
-  boss: { radius: 360, centerX: 512, centerY: 760 },
+  influenza: { radius: 310, centerX: 512, centerY: 765 },
+  adenovirus: { radius: 300, centerX: 512, centerY: 765 },
+  ebolaBoss: { radius: 280, centerX: 512, centerY: 770 },
+  coronaBoss: { radius: 360, centerX: 512, centerY: 760 },
 } satisfies Record<string, SourceCircle>
 
 export function getScaledCircle(

@@ -1,6 +1,12 @@
 import Phaser from 'phaser'
 import { HITBOXES, type SourceCircle } from './collision'
-import { getEnemyForLevel, getLevel, type EnemyType } from './content'
+import {
+  getEnemyForLevel,
+  getLevel,
+  getNextLevelId,
+  type BossConfig,
+  type EnemyType,
+} from './content'
 import {
   applyDamage,
   applyUpgrade,
@@ -43,7 +49,9 @@ export class GameScene extends Phaser.Scene {
   private transitioning = false
   private bossActive = false
   private boss?: Phaser.Physics.Arcade.Image
+  private bossConfig?: BossConfig
   private bossHealth = 0
+  private bossMaxHealth = 0
   private spawnAt = 0
   private firedAt = 0
   private bossFiredAt = 0
@@ -63,7 +71,10 @@ export class GameScene extends Phaser.Scene {
     this.load.image('virus-wobbly', '/assets/generated/virus-wobbly.png')
     this.load.image('virus-splitter', '/assets/generated/virus-splitter.png')
     this.load.image('virus-shield', '/assets/generated/virus-shield.png')
-    this.load.image('virus-boss', '/assets/generated/virus-boss.png')
+    this.load.image('virus-influenza', '/assets/generated/virus-influenza.png')
+    this.load.image('virus-adenovirus', '/assets/generated/virus-adenovirus.png')
+    this.load.image('virus-ebola-boss', '/assets/generated/virus-ebola-boss.png')
+    this.load.image('virus-corona-boss', '/assets/generated/virus-boss.png')
   }
 
   create(): void {
@@ -200,11 +211,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.world.resume()
     this.emitEvent('viral:sound', { kind: 'power' })
 
-    if (this.state.level < 3) {
-      this.startLevel(this.state.level + 1)
-    } else {
-      this.startBoss()
-    }
+    const nextLevelId = getNextLevelId(this.state.level)
+    if (nextLevelId) this.startLevel(nextLevelId)
   }
 
   revive(): void {
@@ -233,6 +241,10 @@ export class GameScene extends Phaser.Scene {
     this.background.setTint(level.tint)
     this.spawnAt = this.time.now + 900
     this.transitioning = false
+    if (level.boss) {
+      this.startBoss(level.boss)
+      return
+    }
     this.emitHud()
     this.emitEvent('viral:toast', {
       message: `第 ${level.id} 关 · ${level.name}`,
@@ -248,6 +260,8 @@ export class GameScene extends Phaser.Scene {
       wobbly: 'virus-wobbly',
       splitter: 'virus-splitter',
       tough: 'virus-shield',
+      influenza: 'virus-influenza',
+      adenovirus: 'virus-adenovirus',
     }[type]
     const enemy = this.enemies.get(
       Phaser.Math.Between(48, WIDTH - 48),
@@ -291,6 +305,20 @@ export class GameScene extends Phaser.Scene {
         scale: [86, 129],
         speed: 0.72,
         amplitude: 24,
+      },
+      influenza: {
+        health: 2,
+        points: 30,
+        scale: [78, 117],
+        speed: 1.04,
+        amplitude: 48,
+      },
+      adenovirus: {
+        health: 4,
+        points: 44,
+        scale: [84, 126],
+        speed: 0.76,
+        amplitude: 20,
       },
     }[type]
 
@@ -419,11 +447,13 @@ export class GameScene extends Phaser.Scene {
 
     if (this.bossHealth <= 0) {
       this.bossActive = false
-      this.disableObject(boss)
+      this.transitioning = true
+      this.enemies.remove(boss, true, true)
+      this.boss = undefined
       this.enemyBullets.clear(true, true)
       this.state = {
         ...this.state,
-        score: this.state.score + 1_000,
+        score: this.state.score + (this.bossConfig?.points ?? 0),
       }
       for (let index = 0; index < 8; index += 1) {
         this.time.delayedCall(index * 110, () => {
@@ -435,8 +465,14 @@ export class GameScene extends Phaser.Scene {
           )
         })
       }
-      this.time.delayedCall(1_050, () => this.finishRun())
-      this.emitEvent('viral:sound', { kind: 'win' })
+      const finalBoss = getNextLevelId(this.state.level) === null
+      this.time.delayedCall(1_050, () => {
+        if (finalBoss) this.finishRun()
+        else this.completeLevel()
+      })
+      this.emitEvent('viral:sound', {
+        kind: finalBoss ? 'win' : 'level',
+      })
     }
   }
 
@@ -531,28 +567,38 @@ export class GameScene extends Phaser.Scene {
     this.emitEvent('viral:levelComplete', {
       level: level.id,
       fact: level.fact,
-      bossNext: level.id === 3,
+      bossNext:
+        getNextLevelId(level.id) !== null &&
+        getLevel(getNextLevelId(level.id) ?? level.id).mode === 'boss',
     })
     this.emitEvent('viral:sound', { kind: 'level' })
   }
 
-  private startBoss(): void {
+  private startBoss(config: BossConfig): void {
     this.transitioning = false
     this.bossActive = true
     this.enemies.clear(true, true)
     this.enemyBullets.clear(true, true)
-    this.bossHealth = 48
-    this.background.setTint(0xd9c9ff)
+    this.bossConfig = config
+    this.bossHealth = config.health
+    this.bossMaxHealth = config.health
     this.boss = this.physics.add
-      .image(WIDTH / 2, 170, 'virus-boss')
-      .setDisplaySize(205, 308)
+      .image(WIDTH / 2, 170, config.texture)
+      .setDisplaySize(config.displaySize[0], config.displaySize[1])
       .setDepth(3)
       .setData('boss', true)
     const body = this.boss.body as Phaser.Physics.Arcade.Body
-    this.setCircularBody(body, HITBOXES.boss)
+    this.setCircularBody(
+      body,
+      config.type === 'ebola'
+        ? HITBOXES.ebolaBoss
+        : HITBOXES.coronaBoss,
+    )
     body.setImmovable(true)
     this.enemies.add(this.boss)
-    this.emitEvent('viral:toast', { message: '最终挑战 · 病毒泡泡王' })
+    this.emitEvent('viral:toast', {
+      message: `第 ${this.state.level} 关 BOSS · ${config.name}`,
+    })
     this.emitHud()
   }
 
@@ -561,7 +607,7 @@ export class GameScene extends Phaser.Scene {
     this.boss.x = WIDTH / 2 + Math.sin(time * 0.0012) * 115
     if (time < this.bossFiredAt) return
 
-    const healthRatio = this.bossHealth / 48
+    const healthRatio = this.bossHealth / this.bossMaxHealth
     const shotCount = healthRatio > 0.66 ? 1 : healthRatio > 0.33 ? 3 : 5
     const startAngle = shotCount === 1 ? 90 : 72
     const step = shotCount === 1 ? 0 : 36 / (shotCount - 1)
@@ -604,10 +650,22 @@ export class GameScene extends Phaser.Scene {
       maxHearts: this.state.maxHearts,
       score: this.state.score,
       level: this.state.level,
-      levelName: this.bossActive ? '病毒泡泡王' : level.name,
+      levelName: this.bossActive
+        ? (this.bossConfig?.name ?? level.name)
+        : level.name,
       progress: this.bossActive
-        ? Phaser.Math.Clamp(1 - this.bossHealth / 48, 0, 1)
-        : Phaser.Math.Clamp(this.state.cleaned / level.cleanTarget, 0, 1),
+        ? Phaser.Math.Clamp(
+            1 - this.bossHealth / this.bossMaxHealth,
+            0,
+            1,
+          )
+        : level.mode === 'boss'
+          ? 1
+          : Phaser.Math.Clamp(
+              this.state.cleaned / level.cleanTarget,
+              0,
+              1,
+            ),
       weaponLevel:
         1 + this.state.upgrades.rapid + this.state.upgrades.spread,
       boss: this.bossActive,
@@ -643,6 +701,7 @@ export class GameScene extends Phaser.Scene {
     this.enemyBullets?.clear(true, true)
     this.powerups?.clear(true, true)
     this.boss = undefined
+    this.bossConfig = undefined
   }
 
   private disableObject(object: Phaser.Physics.Arcade.Image): void {

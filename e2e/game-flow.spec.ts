@@ -105,7 +105,7 @@ test('player, bullets and viruses use real visible collision areas', async ({
   await expect(page.locator('#hearts')).toContainText('💙💙🤍')
 })
 
-test('boss stages use distinct book-inspired silhouettes and collision areas', async ({
+test('book-inspired viruses use distinct silhouettes and collision areas', async ({
   page,
 }) => {
   await page.goto('/')
@@ -125,6 +125,14 @@ test('boss stages use distinct book-inspired silhouettes and collision areas', a
         body: { width: number }
         texture: { key: string }
       }
+      enemies: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => Array<{
+          body: { width: number }
+          texture: { key: string }
+        }>
+      }
+      spawnEnemy: () => void
       startLevel: (level: number) => void
     }
 
@@ -138,13 +146,36 @@ test('boss stages use distinct book-inspired silhouettes and collision areas', a
       texture: scene.boss.texture.key,
       bodyWidth: scene.boss.body.width,
     }
-    return { third, sixth }
+    scene.enemies.clear(true, true)
+    scene.startLevel(4)
+    const originalRandom = Math.random
+    Math.random = () => 0.4
+    scene.spawnEnemy()
+    const influenzaEnemy = scene.enemies.getChildren()[0]
+    const influenza = {
+      texture: influenzaEnemy.texture.key,
+      bodyWidth: influenzaEnemy.body.width,
+    }
+    scene.enemies.clear(true, true)
+    Math.random = () => 0.9
+    scene.spawnEnemy()
+    const adenovirusEnemy = scene.enemies.getChildren()[0]
+    const adenovirus = {
+      texture: adenovirusEnemy.texture.key,
+      bodyWidth: adenovirusEnemy.body.width,
+    }
+    Math.random = originalRandom
+    return { third, sixth, influenza, adenovirus }
   })
 
   expect(bosses.third.texture).toBe('virus-ebola-boss')
   expect(bosses.sixth.texture).toBe('virus-corona-boss')
+  expect(bosses.influenza.texture).toBe('virus-influenza')
+  expect(bosses.adenovirus.texture).toBe('virus-adenovirus')
   expect(bosses.third.bodyWidth).toBeGreaterThan(80)
   expect(bosses.sixth.bodyWidth).toBeGreaterThan(80)
+  expect(bosses.influenza.bodyWidth).toBeGreaterThan(40)
+  expect(bosses.adenovirus.bodyWidth).toBeGreaterThan(40)
 })
 
 test('player death explodes before the revive dialog transitions in', async ({
