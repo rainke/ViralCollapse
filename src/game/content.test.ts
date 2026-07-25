@@ -51,14 +51,18 @@ describe('level content', () => {
     ])
   })
 
-  it('adds recognizable influenza and adenovirus enemies to the run', () => {
+  it('offers eleven recognizable virus silhouettes across the run', () => {
     const sampledTypes = new Set([
       getEnemyForLevel(1, 0.1),
       getEnemyForLevel(1, 0.95),
-      getEnemyForLevel(2, 0.5),
+      getEnemyForLevel(2, 0.3),
+      getEnemyForLevel(2, 0.6),
+      getEnemyForLevel(2, 0.75),
       getEnemyForLevel(2, 0.95),
-      getEnemyForLevel(4, 0.5),
+      getEnemyForLevel(4, 0.45),
+      getEnemyForLevel(4, 0.82),
       getEnemyForLevel(4, 0.95),
+      getEnemyForLevel(5, 0.85),
       getEnemyForLevel(5, 0.95),
     ])
 
@@ -71,6 +75,10 @@ describe('level content', () => {
         'tough',
         'influenza',
         'adenovirus',
+        'rabies',
+        'pox',
+        'polyhedral',
+        'wideMouth',
       ]),
     )
   })
@@ -79,22 +87,29 @@ describe('level content', () => {
     [1, 0.1, 'basic'],
     [1, 0.72, 'wobbly'],
     [2, 0.1, 'basic'],
-    [2, 0.38, 'fast'],
-    [2, 0.62, 'wobbly'],
-    [2, 0.82, 'splitter'],
+    [2, 0.22, 'fast'],
+    [2, 0.4, 'wobbly'],
+    [2, 0.56, 'splitter'],
+    [2, 0.72, 'rabies'],
+    [2, 0.88, 'pox'],
     [4, 0.1, 'basic'],
-    [4, 0.2, 'fast'],
-    [4, 0.38, 'influenza'],
-    [4, 0.56, 'wobbly'],
-    [4, 0.72, 'splitter'],
-    [4, 0.86, 'adenovirus'],
+    [4, 0.22, 'fast'],
+    [4, 0.4, 'influenza'],
+    [4, 0.54, 'wobbly'],
+    [4, 0.66, 'splitter'],
+    [4, 0.78, 'adenovirus'],
+    [4, 0.9, 'polyhedral'],
     [5, 0.1, 'basic'],
-    [5, 0.12, 'fast'],
-    [5, 0.26, 'wobbly'],
-    [5, 0.42, 'splitter'],
-    [5, 0.58, 'influenza'],
-    [5, 0.74, 'adenovirus'],
-    [5, 0.9, 'tough'],
+    [5, 0.11, 'fast'],
+    [5, 0.2, 'wobbly'],
+    [5, 0.29, 'splitter'],
+    [5, 0.38, 'rabies'],
+    [5, 0.47, 'pox'],
+    [5, 0.56, 'influenza'],
+    [5, 0.65, 'adenovirus'],
+    [5, 0.74, 'polyhedral'],
+    [5, 0.83, 'tough'],
+    [5, 0.92, 'wideMouth'],
   ] as const)(
     'maps level %i at random value %f to %s',
     (level, randomValue, expected) => {
