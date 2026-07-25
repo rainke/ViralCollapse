@@ -73,6 +73,10 @@ export class GameScene extends Phaser.Scene {
     this.load.image('virus-shield', '/assets/generated/virus-shield.png')
     this.load.image('virus-influenza', '/assets/generated/virus-influenza.png')
     this.load.image('virus-adenovirus', '/assets/generated/virus-adenovirus.png')
+    this.load.image('virus-rabies', '/assets/generated/virus-rabies.png')
+    this.load.image('virus-pox', '/assets/generated/virus-pox.png')
+    this.load.image('virus-polyhedral', '/assets/generated/virus-polyhedral.png')
+    this.load.image('virus-wide-mouth', '/assets/generated/virus-wide-mouth.png')
     this.load.image('virus-ebola-boss', '/assets/generated/virus-ebola-boss.png')
     this.load.image('virus-corona-boss', '/assets/generated/virus-boss.png')
   }
@@ -262,6 +266,10 @@ export class GameScene extends Phaser.Scene {
       tough: 'virus-shield',
       influenza: 'virus-influenza',
       adenovirus: 'virus-adenovirus',
+      rabies: 'virus-rabies',
+      pox: 'virus-pox',
+      polyhedral: 'virus-polyhedral',
+      wideMouth: 'virus-wide-mouth',
     }[type]
     const enemy = this.enemies.get(
       Phaser.Math.Between(48, WIDTH - 48),
@@ -319,6 +327,34 @@ export class GameScene extends Phaser.Scene {
         scale: [84, 126],
         speed: 0.76,
         amplitude: 20,
+      },
+      rabies: {
+        health: 1,
+        points: 24,
+        scale: [72, 108],
+        speed: 1.35,
+        amplitude: 60,
+      },
+      pox: {
+        health: 3,
+        points: 34,
+        scale: [82, 123],
+        speed: 0.78,
+        amplitude: 18,
+      },
+      polyhedral: {
+        health: 3,
+        points: 38,
+        scale: [88, 132],
+        speed: 0.82,
+        amplitude: 26,
+      },
+      wideMouth: {
+        health: 4,
+        points: 46,
+        scale: [80, 120],
+        speed: 0.7,
+        amplitude: 36,
       },
     }[type]
 

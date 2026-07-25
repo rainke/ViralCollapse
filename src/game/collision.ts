@@ -15,6 +15,10 @@ export const HITBOXES = {
   tough: { radius: 350, centerX: 512, centerY: 780 },
   influenza: { radius: 310, centerX: 512, centerY: 765 },
   adenovirus: { radius: 300, centerX: 512, centerY: 765 },
+  rabies: { radius: 280, centerX: 512, centerY: 760 },
+  pox: { radius: 300, centerX: 512, centerY: 760 },
+  polyhedral: { radius: 300, centerX: 512, centerY: 760 },
+  wideMouth: { radius: 280, centerX: 512, centerY: 760 },
   ebolaBoss: { radius: 280, centerX: 512, centerY: 770 },
   coronaBoss: { radius: 360, centerX: 512, centerY: 760 },
 } satisfies Record<string, SourceCircle>

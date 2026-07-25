@@ -99,7 +99,7 @@ describe('level content', () => {
     [4, 0.66, 'splitter'],
     [4, 0.78, 'adenovirus'],
     [4, 0.9, 'polyhedral'],
-    [5, 0.1, 'basic'],
+    [5, 0.09, 'basic'],
     [5, 0.11, 'fast'],
     [5, 0.2, 'wobbly'],
     [5, 0.29, 'splitter'],

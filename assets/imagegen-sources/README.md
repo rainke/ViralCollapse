@@ -130,3 +130,63 @@ Composition/framing: full character centered with generous empty padding, portra
 Lighting/mood: bright, warm, magical, safe and cheerful; lighting affects only the subject.
 Constraints: one character only; perfectly uniform #00ff00 background; crisp clean edges; no green anywhere in the subject; no cast shadow, contact shadow, gradient, texture, floor, reflection, dish, tongue, text, logo, watermark, realistic anatomy, gore, teeth, or extra objects.
 ```
+
+### Rabies virus
+
+```text
+Use case: stylized-concept
+Asset type: children's mobile portrait shooter enemy sprite
+Input images: Image 1 is a children's-book subject-shape reference only; use the green rabies-virus character at the upper left. Image 2 is the game's soft 3D toy style anchor.
+Primary request: create one unmistakable rabies-virus enemy based on Image 1's long green capsule body and sweeping feelers, without copying the book's illustration style or exact face.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for removal.
+Subject: exactly one olive and emerald elongated bullet-shaped virus toy, tilted slightly diagonally, with two extremely long curved feeler spikes sweeping backward, a row of small dark-green rounded nubs, large playful determined eyes, and a tiny closed mouth. Strong long asymmetric silhouette readable at 70 pixels.
+Style/medium: polished soft 3D toy animation, rounded clay and soft-plastic materials matching Image 2, top-down three-quarter game view, facing downward.
+Composition/framing: full character centered with generous empty padding; all feelers fully inside the portrait sprite canvas.
+Lighting/mood: bright, warm, magical, safe and cheerful; lighting affects only the subject.
+Constraints: one character only; perfectly uniform #ff00ff background; crisp clean edges; no magenta or pink in the subject; no spiral motion trail, cast shadow, contact shadow, gradient, texture, floor, reflection, text, logo, watermark, realistic anatomy, gore, teeth, or extra objects.
+```
+
+### Pox virus
+
+```text
+Use case: stylized-concept
+Asset type: children's mobile portrait shooter enemy sprite
+Input images: Image 1 is a children's-book subject-shape reference only; use the brick-like pox-virus character near the upper center. Image 2 is the game's soft 3D toy style anchor.
+Primary request: create one unmistakable pox-virus enemy based on Image 1's brick-wall body, without copying the book's illustration style, costume, or exact face.
+Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for removal.
+Subject: exactly one chunky rust-red rectangular virus toy constructed from six large rounded brick-like plates in staggered rows, with visible dark mortar grooves, two expressive eyes on the front center, a stubborn tiny closed mouth, and two very short blocky arm nubs. Bold square stepped silhouette readable at 80 pixels.
+Style/medium: polished soft 3D toy animation, rounded clay and soft-plastic materials matching Image 2, top-down three-quarter game view, facing downward.
+Composition/framing: full character centered with generous empty padding on a portrait sprite canvas.
+Lighting/mood: bright, warm, magical, safe and cheerful; lighting affects only the subject.
+Constraints: one character only; perfectly uniform #00ff00 background; crisp clean edges; no green in the subject; no hat, legs, separate wall, cast shadow, contact shadow, gradient, texture in the background, floor, reflection, text, logo, watermark, realistic anatomy, gore, teeth, or extra objects.
+```
+
+### Polyhedral virus
+
+```text
+Use case: stylized-concept
+Asset type: children's mobile portrait shooter enemy sprite
+Input images: Image 1 is a children's-book subject-shape reference only; use the blue crystal polyhedral-virus structures at the lower right. Image 2 is the game's soft 3D toy style anchor.
+Primary request: create one unmistakable polyhedral-virus enemy based on Image 1's faceted crystal containing orange rod-like virus pieces, without copying the book's illustration style or exact characters.
+Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for removal.
+Subject: exactly one large icy-cyan faceted icosahedral crystal toy with a bold diamond-like silhouette. Three front triangular facets are open cutaway windows revealing three bright orange capsule-shaped rods inside; place two playful determined eyes and a tiny closed mouth on the lower central blue facet. The outer crystal must be opaque blue plastic with lighter beveled edges, not glass or transparent.
+Style/medium: polished soft 3D toy animation, rounded bevels and soft-plastic materials matching Image 2, top-down three-quarter game view, facing downward.
+Composition/framing: one complete virus structure centered with generous empty padding on a portrait sprite canvas.
+Lighting/mood: bright, warm, magical, safe and cheerful; lighting affects only the subject.
+Constraints: exactly one outer polyhedral structure; perfectly uniform #00ff00 background; crisp clean edges; no green in the subject; no transparency, glass, reflections, cast shadow, contact shadow, background gradient, floor, text, logo, watermark, realistic anatomy, gore, teeth, or loose extra objects outside the shell.
+```
+
+### Wide-mouth jar virus
+
+```text
+Use case: stylized-concept
+Asset type: children's mobile portrait shooter enemy sprite
+Input images: Image 1 is a children's-book subject-shape reference only; use the large yellow-orange wide-mouth jar virus near the upper center. Image 2 is the game's soft 3D toy style anchor.
+Primary request: create one unmistakable wide-mouth-jar virus enemy based on Image 1's tall sack-like jar body and flared open mouth, without copying the book's illustration style or exact face.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background for removal.
+Subject: exactly one golden-yellow and tangerine pear-shaped sack-jar virus toy, tall and slightly bottom-heavy, with a dramatically flared open jar mouth at the top, a thick brick-red rim and dark opening, two tiny feet, two short arm nubs, big curious determined eyes, and a tiny closed smile. Strong bottle-and-sack silhouette readable at 80 pixels.
+Style/medium: polished soft 3D toy animation, rounded clay and soft-plastic materials matching Image 2, top-down three-quarter game view, facing downward.
+Composition/framing: full character centered with generous empty padding on a portrait sprite canvas; the open mouth is fully visible.
+Lighting/mood: bright, warm, magical, safe and cheerful; lighting affects only the subject.
+Constraints: one character only; perfectly uniform #ff00ff background; crisp clean edges; no magenta or pink in the subject; no contents emerging from the opening, cast shadow, contact shadow, background gradient, texture, floor, reflection, text, logo, watermark, realistic anatomy, gore, teeth, or extra characters.
+```

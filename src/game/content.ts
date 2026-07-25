@@ -6,6 +6,10 @@ export type EnemyType =
   | 'tough'
   | 'influenza'
   | 'adenovirus'
+  | 'rabies'
+  | 'pox'
+  | 'polyhedral'
+  | 'wideMouth'
 
 export type BossType = 'ebola' | 'corona'
 
@@ -158,26 +162,33 @@ export function getEnemyForLevel(
 ): EnemyType {
   if (level === 1) return randomValue >= 0.72 ? 'wobbly' : 'basic'
   if (level === 2) {
-    if (randomValue >= 0.82) return 'splitter'
-    if (randomValue >= 0.62) return 'wobbly'
-    if (randomValue >= 0.38) return 'fast'
+    if (randomValue >= 0.88) return 'pox'
+    if (randomValue >= 0.72) return 'rabies'
+    if (randomValue >= 0.56) return 'splitter'
+    if (randomValue >= 0.4) return 'wobbly'
+    if (randomValue >= 0.22) return 'fast'
     return 'basic'
   }
 
   if (level === 4) {
-    if (randomValue >= 0.86) return 'adenovirus'
-    if (randomValue >= 0.72) return 'splitter'
-    if (randomValue >= 0.56) return 'wobbly'
-    if (randomValue >= 0.38) return 'influenza'
-    if (randomValue >= 0.2) return 'fast'
+    if (randomValue >= 0.9) return 'polyhedral'
+    if (randomValue >= 0.78) return 'adenovirus'
+    if (randomValue >= 0.66) return 'splitter'
+    if (randomValue >= 0.54) return 'wobbly'
+    if (randomValue >= 0.4) return 'influenza'
+    if (randomValue >= 0.22) return 'fast'
     return 'basic'
   }
 
-  if (randomValue >= 0.88) return 'tough'
-  if (randomValue >= 0.74) return 'adenovirus'
-  if (randomValue >= 0.58) return 'influenza'
-  if (randomValue >= 0.42) return 'splitter'
-  if (randomValue >= 0.26) return 'wobbly'
-  if (randomValue >= 0.12) return 'fast'
+  if (randomValue >= 0.91) return 'wideMouth'
+  if (randomValue >= 0.82) return 'tough'
+  if (randomValue >= 0.73) return 'polyhedral'
+  if (randomValue >= 0.64) return 'adenovirus'
+  if (randomValue >= 0.55) return 'influenza'
+  if (randomValue >= 0.46) return 'pox'
+  if (randomValue >= 0.37) return 'rabies'
+  if (randomValue >= 0.28) return 'splitter'
+  if (randomValue >= 0.19) return 'wobbly'
+  if (randomValue >= 0.1) return 'fast'
   return 'basic'
 }
