@@ -36,6 +36,38 @@ test('pause and resume keep the child in the same run', async ({ page }) => {
   await expect(page.locator('#game-canvas canvas')).toBeVisible()
 })
 
+test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
+  await page.goto('/')
+
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new CustomEvent('viral:levelComplete', {
+        detail: {
+          level: 1,
+          fact: {
+            emoji: '🫧',
+            title: '鼻子小卫士',
+            body: '鼻毛和黏液会帮助挡住灰尘和小坏蛋。',
+          },
+          bossNext: false,
+        },
+      }),
+    )
+  })
+
+  const audioResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/assets/generated/speech/fact-1.mp3') &&
+      response.request().resourceType() === 'media',
+  )
+  await page.getByRole('button', { name: '听一听' }).click()
+
+  await expect(audioResponse).resolves.toMatchObject({
+    status: expect.any(Function),
+  })
+  expect((await audioResponse).status()).toBe(200)
+})
+
 test('player, bullets and viruses use real visible collision areas', async ({
   page,
 }) => {
