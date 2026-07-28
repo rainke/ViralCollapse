@@ -32,7 +32,6 @@ describe('Bailian speech requests', () => {
         voice: 'cloned-voice',
         language_type: 'Chinese',
       },
-      parameters: { format: 'mp3' },
     })
     expect(BAILIAN_GENERATION_ENDPOINT).toBe(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
