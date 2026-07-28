@@ -12,7 +12,7 @@ describe('generated fact speech', () => {
       expect(speech).toEqual({
         level: level.id,
         text: `${level.fact.title}。${level.fact.body}`,
-        asset: `/assets/generated/speech/fact-${level.id}.mp3`,
+        asset: `/assets/generated/speech/fact-${level.id}.wav`,
       })
     }
   })
