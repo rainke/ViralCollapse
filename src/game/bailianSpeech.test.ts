@@ -4,6 +4,7 @@ import {
   BAILIAN_VOICE_CLONE_ENDPOINT,
   buildClonePayload,
   buildSpeechPayload,
+  getMissingSpeech,
   getAudioMimeType,
 } from '../../scripts/bailian-speech.mjs'
 
@@ -42,5 +43,23 @@ describe('Bailian speech requests', () => {
     expect(getAudioMimeType('source.mp3')).toBe('audio/mpeg')
     expect(getAudioMimeType('source.m4a')).toBe('audio/mp4')
     expect(getAudioMimeType('source.wav')).toBe('audio/wav')
+  })
+
+  it('keeps only speech assets that have not been generated yet', () => {
+    const speech = [
+      { level: 1, asset: '/assets/generated/speech/fact-1.wav' },
+      { level: 2, asset: '/assets/generated/speech/fact-2.wav' },
+      { level: 3, asset: '/assets/generated/speech/fact-3.wav' },
+    ]
+
+    expect(
+      getMissingSpeech(
+        speech,
+        new Set(['/assets/generated/speech/fact-1.wav']),
+      ),
+    ).toEqual([speech[1], speech[2]])
+    expect(getMissingSpeech(speech, new Set(speech.map((item) => item.asset)))).toEqual(
+      [],
+    )
   })
 })

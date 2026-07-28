@@ -12,3 +12,8 @@ export function buildSpeechPayload(
 ): Record<string, unknown>
 
 export function getAudioMimeType(path: string): string
+
+export function getMissingSpeech<T extends { asset: string }>(
+  speech: readonly T[],
+  existingAssets: ReadonlySet<string>,
+): T[]
