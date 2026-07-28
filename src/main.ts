@@ -7,6 +7,7 @@ import {
   type GameSave,
   type UpgradeId,
 } from './game/model'
+import { getFactSpeech } from './game/speech'
 
 const SAVE_KEY = 'viral-collapse-save'
 
@@ -18,6 +19,7 @@ function element<T extends HTMLElement>(selector: string): T {
 
 class SoundSynth {
   private context?: AudioContext
+  private speech?: HTMLAudioElement
   muted = false
 
   unlock(): void {
@@ -61,6 +63,18 @@ class SoundSynth {
     oscillator.connect(gain).connect(this.context.destination)
     oscillator.start()
     oscillator.stop(this.context.currentTime + duration)
+  }
+
+  playSpeech(asset: string): void {
+    if (this.muted) return
+    this.speech?.pause()
+    this.speech = new Audio(asset)
+    void this.speech.play().catch(() => {})
+  }
+
+  setMuted(muted: boolean): void {
+    this.muted = muted
+    if (muted) this.speech?.pause()
   }
 }
 
@@ -134,7 +148,7 @@ function persistSave(patch: Partial<GameSave>): void {
 }
 
 function setMuted(muted: boolean): void {
-  sound.muted = muted
+  sound.setMuted(muted)
   persistSave({ muted })
   updateSoundLabels()
 }
@@ -172,13 +186,9 @@ function button(
   return item
 }
 
-function speak(text: string): void {
-  if (!('speechSynthesis' in window)) return
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'zh-CN'
-  utterance.rate = 0.85
-  window.speechSynthesis.speak(utterance)
+function speak(level: number): void {
+  const speech = getFactSpeech(level)
+  if (speech) sound.playSpeech(speech.asset)
 }
 
 function showLevelComplete(detail: {
@@ -193,7 +203,7 @@ function showLevelComplete(detail: {
   modalActions.replaceChildren()
 
   const speakButton = button('🔊 听一听', 'speak-button', () =>
-    speak(`${detail.fact.title}。${detail.fact.body}`),
+    speak(detail.level),
   )
   const grid = document.createElement('div')
   grid.className = 'upgrade-grid'
