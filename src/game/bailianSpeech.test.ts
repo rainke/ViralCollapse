@@ -24,7 +24,7 @@ describe('Bailian speech requests', () => {
     )
   })
 
-  it('synthesizes an MP3 with the cloned Qwen voice', () => {
+  it('synthesizes speech with the cloned Qwen voice', () => {
     expect(buildSpeechPayload('cloned-voice', '洗手有魔力。')).toEqual({
       model: 'qwen3-tts-vc-2026-01-22',
       input: {

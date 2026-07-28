@@ -57,15 +57,14 @@ test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
 
   const audioResponse = page.waitForResponse(
     (response) =>
-      response.url().endsWith('/assets/generated/speech/fact-1.mp3') &&
+      response.url().endsWith('/assets/generated/speech/fact-1.wav') &&
       response.request().resourceType() === 'media',
   )
   await page.getByRole('button', { name: '听一听' }).click()
 
-  await expect(audioResponse).resolves.toMatchObject({
-    status: expect.any(Function),
-  })
-  expect((await audioResponse).status()).toBe(200)
+  const response = await audioResponse
+  expect([200, 206]).toContain(response.status())
+  expect(response.headers()['content-type']).toContain('audio/wav')
 })
 
 test('player, bullets and viruses use real visible collision areas', async ({

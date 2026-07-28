@@ -5,14 +5,24 @@ export const BAILIAN_GENERATION_ENDPOINT =
 
 const MODEL = 'qwen3-tts-vc-2026-01-22'
 
-export function buildClonePayload(preferredName, sourceAudioBase64) {
+export function getAudioMimeType(path) {
+  if (path.endsWith('.m4a')) return 'audio/mp4'
+  if (path.endsWith('.wav')) return 'audio/wav'
+  return 'audio/mpeg'
+}
+
+export function buildClonePayload(
+  preferredName,
+  sourceAudioBase64,
+  audioMimeType = 'audio/mpeg',
+) {
   return {
     model: 'qwen-voice-enrollment',
     input: {
       action: 'create',
       target_model: MODEL,
       preferred_name: preferredName,
-      audio: { data: `data:audio/mpeg;base64,${sourceAudioBase64}` },
+      audio: { data: `data:${audioMimeType};base64,${sourceAudioBase64}` },
       language: 'zh',
     },
   }
@@ -26,6 +36,5 @@ export function buildSpeechPayload(voice, text) {
       voice,
       language_type: 'Chinese',
     },
-    parameters: { format: 'mp3' },
   }
 }

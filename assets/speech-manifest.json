@@ -1,0 +1,32 @@
+[
+  {
+    "level": 1,
+    "text": "鼻子小卫士。鼻毛和黏液会帮助挡住灰尘和小坏蛋。",
+    "asset": "/assets/generated/speech/fact-1.wav"
+  },
+  {
+    "level": 2,
+    "text": "洗手有魔力。认真洗手，可以把手上的脏东西冲走。",
+    "asset": "/assets/generated/speech/fact-2.wav"
+  },
+  {
+    "level": 3,
+    "text": "形状会不同。病毒外形很多样，弯弯长长的也可能是病毒。",
+    "asset": "/assets/generated/speech/fact-3.wav"
+  },
+  {
+    "level": 4,
+    "text": "开窗多通风。让新鲜空气流动，房间会更舒服。",
+    "asset": "/assets/generated/speech/fact-4.wav"
+  },
+  {
+    "level": 5,
+    "text": "咳嗽要遮挡。咳嗽或打喷嚏时，用纸巾或手肘遮住口鼻。",
+    "asset": "/assets/generated/speech/fact-5.wav"
+  },
+  {
+    "level": 6,
+    "text": "疫苗小盾牌。疫苗会帮助身体提前练习怎样保护自己。",
+    "asset": "/assets/generated/speech/fact-6.wav"
+  }
+]

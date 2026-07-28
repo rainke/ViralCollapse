@@ -1,16 +1,17 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   BAILIAN_GENERATION_ENDPOINT,
   BAILIAN_VOICE_CLONE_ENDPOINT,
   buildClonePayload,
   buildSpeechPayload,
+  getAudioMimeType,
 } from './bailian-speech.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
-const sourcePath = join(root, 'source.mp3')
-const manifestPath = join(root, 'assets/speech-manifest.json')
+const sourcePath = resolve(root, process.env.BAILIAN_SOURCE_PATH ?? 'source.mp3')
+const manifestPath = resolve(root, 'assets/speech-manifest.json')
 const apiKey = process.env.BAILIAN_API_KEY
 const voiceName = process.env.BAILIAN_VOICE_NAME ?? 'ViralGuard'
 
@@ -42,7 +43,11 @@ async function cloneVoice() {
   const source = await readFile(sourcePath)
   const body = await requestJson(
     BAILIAN_VOICE_CLONE_ENDPOINT,
-    buildClonePayload(voiceName, source.toString('base64')),
+    buildClonePayload(
+      voiceName,
+      source.toString('base64'),
+      getAudioMimeType(sourcePath),
+    ),
     'Voice clone',
   )
   const voice = body.output?.voice
@@ -71,7 +76,7 @@ async function synthesizeSpeech(speech, voice) {
       `Downloading speech for level ${speech.level} failed: HTTP ${audioResponse.status}`,
     )
   }
-  const outputPath = join(root, 'public', speech.asset.replace(/^\//, ''))
+  const outputPath = resolve(root, 'public', speech.asset.replace(/^\//, ''))
   await mkdir(dirname(outputPath), { recursive: true })
   await writeFile(outputPath, Buffer.from(await audioResponse.arrayBuffer()))
   console.log(`Generated ${speech.asset}`)
