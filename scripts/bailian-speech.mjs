@@ -11,6 +11,10 @@ export function getAudioMimeType(path) {
   return 'audio/mpeg'
 }
 
+export function getMissingSpeech(speech, existingAssets) {
+  return speech.filter((item) => !existingAssets.has(item.asset))
+}
+
 export function buildClonePayload(
   preferredName,
   sourceAudioBase64,

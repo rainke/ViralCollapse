@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -7,6 +7,7 @@ import {
   buildClonePayload,
   buildSpeechPayload,
   getAudioMimeType,
+  getMissingSpeech,
 } from './bailian-speech.mjs'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -15,11 +16,11 @@ const manifestPath = resolve(root, 'assets/speech-manifest.json')
 const apiKey = process.env.BAILIAN_API_KEY
 const voiceName = process.env.BAILIAN_VOICE_NAME ?? 'ViralGuard'
 
-if (!apiKey) {
-  throw new Error('BAILIAN_API_KEY is required')
-}
-
 async function requestJson(url, payload, action) {
+  if (!apiKey) {
+    throw new Error('BAILIAN_API_KEY is required')
+  }
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -82,11 +83,42 @@ async function synthesizeSpeech(speech, voice) {
   console.log(`Generated ${speech.asset}`)
 }
 
-const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
-console.log('Cloning voice with Bailian')
-const voice = await cloneVoice()
-console.log(`Voice cloned as ${voice}`)
+async function getExistingAssets(speech) {
+  const results = await Promise.all(
+    speech.map(async (item) => {
+      const outputPath = resolve(root, 'public', item.asset.replace(/^\//, ''))
 
-for (const speech of manifest) {
-  await synthesizeSpeech(speech, voice)
+      try {
+        await access(outputPath)
+        return item.asset
+      } catch {
+        return undefined
+      }
+    }),
+  )
+
+  return new Set(results.filter((asset) => asset !== undefined))
 }
+
+async function main() {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const missingSpeech = getMissingSpeech(
+    manifest,
+    await getExistingAssets(manifest),
+  )
+
+  if (missingSpeech.length === 0) {
+    console.log('All speech assets already exist; nothing to generate')
+    return
+  }
+
+  console.log('Cloning voice with Bailian')
+  const voice = await cloneVoice()
+  console.log(`Voice cloned as ${voice}`)
+
+  for (const speech of missingSpeech) {
+    await synthesizeSpeech(speech, voice)
+  }
+}
+
+await main()
