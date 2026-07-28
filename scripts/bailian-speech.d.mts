@@ -10,3 +10,5 @@ export function buildSpeechPayload(
   voice: string,
   text: string,
 ): Record<string, unknown>
+
+export function getAudioMimeType(path: string): string

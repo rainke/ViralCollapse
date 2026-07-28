@@ -4,6 +4,7 @@ import {
   BAILIAN_VOICE_CLONE_ENDPOINT,
   buildClonePayload,
   buildSpeechPayload,
+  getAudioMimeType,
 } from '../../scripts/bailian-speech.mjs'
 
 describe('Bailian speech requests', () => {
@@ -36,5 +37,11 @@ describe('Bailian speech requests', () => {
     expect(BAILIAN_GENERATION_ENDPOINT).toBe(
       'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
     )
+  })
+
+  it('uses the correct data URL MIME type for supported clone samples', () => {
+    expect(getAudioMimeType('source.mp3')).toBe('audio/mpeg')
+    expect(getAudioMimeType('source.m4a')).toBe('audio/mp4')
+    expect(getAudioMimeType('source.wav')).toBe('audio/wav')
   })
 })
