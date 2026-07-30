@@ -7,6 +7,8 @@ export type UpgradeId =
   | 'health'
   | 'critical'
   | 'guard'
+  | 'split'
+  | 'pierce'
 
 export type UpgradeState = Record<UpgradeId, number>
 
@@ -68,6 +70,8 @@ export const UPGRADE_CAPS: Record<UpgradeId, number> = {
   health: 4,
   critical: 4,
   guard: 4,
+  split: 3,
+  pierce: 3,
 }
 
 const EMPTY_UPGRADES: UpgradeState = {
@@ -77,6 +81,8 @@ const EMPTY_UPGRADES: UpgradeState = {
   health: 0,
   critical: 0,
   guard: 0,
+  split: 0,
+  pierce: 0,
 }
 
 export function createGameState(
@@ -252,6 +258,26 @@ export function calculateBulletDamage(
   )
 }
 
+export function getSplitProjectiles(
+  state: GameState,
+  parentDamage: number,
+  random: () => number = Math.random,
+): Array<{ angle: number; damage: number; tint: number }> {
+  const count = state.upgrades.split === 0
+    ? 0
+    : state.upgrades.split + 1
+  const tints = [0xff78d1, 0xffd166, 0x9b8cff, 0x7dffa1]
+  return Array.from({ length: count }, (_, index) => ({
+    angle: Math.round(random() * 360) % 360,
+    damage: Math.max(1, Math.round(parentDamage * 0.5)),
+    tint: tints[index],
+  }))
+}
+
+export function getProjectilePierceCount(state: GameState): number {
+  return state.upgrades.pierce
+}
+
 function seededOrder(seed: number): () => number {
   let value = seed >>> 0
   return () => {
@@ -281,7 +307,14 @@ export function chooseUpgradeOptions(
     (id) => upgrades[id] < UPGRADE_CAPS[id],
   )
   const offense = available.filter((id) =>
-    ['damage', 'rapid', 'spread', 'critical'].includes(id),
+    [
+      'damage',
+      'rapid',
+      'spread',
+      'critical',
+      'split',
+      'pierce',
+    ].includes(id),
   )
   const defense = available.filter((id) =>
     ['health', 'guard'].includes(id),

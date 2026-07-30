@@ -23,6 +23,8 @@ import {
   getChapterStars,
   getFireInterval,
   getPlayerCombatStats,
+  getProjectilePierceCount,
+  getSplitProjectiles,
   healPlayer,
   recordVirusCleaned,
   restartCurrentLevel,
@@ -173,7 +175,7 @@ export class GameScene extends Phaser.Scene {
         score: run.score,
         levelStartScore: run.score,
         battleLevel: run.battleLevel,
-        upgrades: { ...run.upgrades },
+        upgrades: { ...initial.upgrades, ...run.upgrades },
         deaths: run.deaths,
         pendingUpgrades: run.pendingUpgrades,
       }
@@ -467,20 +469,24 @@ export class GameScene extends Phaser.Scene {
       bullet
         .setActive(true)
         .setVisible(true)
+        .setTexture('antibody')
         .setDepth(4)
         .setScale(1)
         .setAlpha(1)
+        .clearTint()
       const body = bullet.body as Phaser.Physics.Arcade.Body
       body.enable = true
       body.setSize(14, 20)
-      bullet.setData(
-        'damage',
-        calculateBulletDamage(
+      bullet.setData({
+        damage: calculateBulletDamage(
           this.state,
           shot.damageMultiplier,
           critical,
         ),
-      )
+        remainingPierces: getProjectilePierceCount(this.state),
+        splitChild: false,
+        hitTargets: new Set<EnemySprite>(),
+      })
       this.physics.velocityFromAngle(shot.angle - 90, 470, body.velocity)
     }
     this.emitEvent('viral:sound', { kind: 'pop', quiet: true })
@@ -492,21 +498,35 @@ export class GameScene extends Phaser.Scene {
   ): void {
     const bullet = bulletObject as Phaser.Physics.Arcade.Image
     const enemy = enemyObject as EnemySprite
-    this.disableObject(bullet)
+    const hitTargets =
+      (bullet.getData('hitTargets') as Set<EnemySprite> | undefined) ??
+      new Set<EnemySprite>()
+    if (hitTargets.has(enemy)) return
+    hitTargets.add(enemy)
+    bullet.setData('hitTargets', hitTargets)
+
+    const damage =
+      (bullet.getData('damage') as number | undefined) ??
+      getPlayerCombatStats(this.state).damage
+    if (bullet.getData('splitChild') !== true) {
+      this.spawnSplitAntibodies(bullet.x, bullet.y, damage, enemy)
+    }
+
+    const remainingPierces =
+      (bullet.getData('remainingPierces') as number | undefined) ?? 0
+    if (remainingPierces > 0) {
+      bullet.setData('remainingPierces', remainingPierces - 1)
+    } else {
+      this.disableObject(bullet)
+    }
 
     if (enemy === this.boss) {
-      this.hitBoss(
-        enemy,
-        (bullet.getData('damage') as number | undefined) ??
-          getPlayerCombatStats(this.state).damage,
-      )
+      this.hitBoss(enemy, damage)
       return
     }
 
     const health =
-      (enemy.getData('health') as number) -
-      ((bullet.getData('damage') as number | undefined) ??
-        getPlayerCombatStats(this.state).damage)
+      (enemy.getData('health') as number) - damage
     enemy.setData('health', health)
     if (health > 0) {
       this.tweens.add({
@@ -863,7 +883,12 @@ export class GameScene extends Phaser.Scene {
         if (
           object.active &&
           object !== this.boss &&
-          (object.y < -150 || object.y > HEIGHT + 120)
+          (
+            object.x < -120 ||
+            object.x > WIDTH + 120 ||
+            object.y < -150 ||
+            object.y > HEIGHT + 120
+          )
         ) {
           this.disableObject(object)
         }
@@ -1034,6 +1059,39 @@ export class GameScene extends Phaser.Scene {
       body.enable = true
       this.setCircularBody(body, HITBOXES.splitter)
       body.setVelocityY(stats.speed)
+    }
+  }
+
+  private spawnSplitAntibodies(
+    x: number,
+    y: number,
+    parentDamage: number,
+    hitEnemy: EnemySprite,
+  ): void {
+    for (const split of getSplitProjectiles(this.state, parentDamage)) {
+      const child = this.bullets.get(x, y, 'antibody') as
+        | Phaser.Physics.Arcade.Image
+        | null
+      if (!child) continue
+
+      child
+        .setActive(true)
+        .setVisible(true)
+        .setTexture('antibody')
+        .setDepth(4)
+        .setScale(0.82)
+        .setAlpha(1)
+        .setTint(split.tint)
+        .setData({
+          damage: split.damage,
+          remainingPierces: 0,
+          splitChild: true,
+          hitTargets: new Set<EnemySprite>([hitEnemy]),
+        })
+      const body = child.body as Phaser.Physics.Arcade.Body
+      body.enable = true
+      body.setSize(14, 20)
+      this.physics.velocityFromAngle(split.angle, 360, body.velocity)
     }
   }
 

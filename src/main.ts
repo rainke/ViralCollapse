@@ -285,6 +285,8 @@ function showLevelComplete(detail: {
     health: { id: 'health', icon: '💙', title: '生命成长', caption: '上限 +15%' },
     critical: { id: 'critical', icon: '🎯', title: '精准暴击', caption: '暴击 +10%' },
     guard: { id: 'guard', icon: '🛡️', title: '坚固护盾', caption: '伤害 -8%' },
+    split: { id: 'split', icon: '✨', title: '抗体分裂', caption: '命中产生更多子抗体' },
+    pierce: { id: 'pierce', icon: '🧬', title: '抗体穿透', caption: '穿透更多病毒' },
   }
 
   for (const upgradeId of detail.options) {

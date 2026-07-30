@@ -390,15 +390,19 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
         upgrades: Record<string, number>
       }
       bullets: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
         getChildren: () => Projectile[]
       }
       enemies: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
         getChildren: () => unknown[]
       }
       fireAntibodies: () => void
       spawnEnemy: () => void
       onBulletHitsEnemy: (bullet: unknown, enemy: unknown) => void
     }
+    scene.bullets.clear(true, true)
+    scene.enemies.clear(true, true)
     scene.state.upgrades.split = 2
     scene.state.upgrades.pierce = 1
     scene.fireAntibodies()
@@ -415,6 +419,10 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
       (bullet) => bullet.active && bullet.getData('splitChild') === true,
     )
     const parentAfterFirst = parent.active
+    scene.onBulletHitsEnemy(parent, firstEnemy)
+    const duplicateChildCount = scene.bullets.getChildren().filter(
+      (bullet) => bullet.active && bullet.getData('splitChild') === true,
+    ).length
     scene.onBulletHitsEnemy(parent, secondEnemy)
     const childrenAfterSecond = scene.bullets.getChildren().filter(
       (bullet) => bullet.active && bullet.getData('splitChild') === true,
@@ -424,6 +432,7 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
       parentAfterFirst,
       parentAfterSecond: parent.active,
       firstChildCount: firstChildren.length,
+      duplicateChildCount,
       secondChildCount: childrenAfterSecond.length,
       childColors: new Set(
         childrenAfterSecond.map((bullet) => bullet.tintTopLeft),
@@ -435,6 +444,7 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     parentAfterFirst: true,
     parentAfterSecond: false,
     firstChildCount: 3,
+    duplicateChildCount: 3,
     secondChildCount: 6,
     childColors: 3,
   })
