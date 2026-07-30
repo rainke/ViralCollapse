@@ -684,6 +684,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private maybeDropSkillFragment(x: number, y: number): void {
+    const hasActiveFragment = this.powerups.getChildren().some(
+      (item) =>
+        item.active &&
+        (item as Phaser.Physics.Arcade.Image).getData('kind') === 'skill',
+    )
+    if (hasActiveFragment) return
     if (!shouldDropSkillFragment(Math.random())) return
     const fragment = this.powerups.get(x, y, 'skill-fragment') as
       | Phaser.Physics.Arcade.Image
