@@ -149,6 +149,10 @@ export function recordVirusCleaned(
   }
 }
 
+export function shouldDropSkillFragment(randomValue: number): boolean {
+  return randomValue < 0.1
+}
+
 export function revivePlayer(state: GameState, now: number): GameState {
   return {
     ...state,
