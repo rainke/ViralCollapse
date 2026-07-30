@@ -29,6 +29,7 @@ import {
   recordVirusCleaned,
   restartCurrentLevel,
   revivePlayer,
+  shouldDropSkillFragment,
   type GameState,
   type RunSave,
   type UpgradeId,
@@ -65,6 +66,7 @@ export class GameScene extends Phaser.Scene {
   private started = false
   private paused = false
   private transitioning = false
+  private upgradeChoiceSource: 'level' | 'fragment' = 'level'
   private bossActive = false
   private boss?: Phaser.Physics.Arcade.Image
   private bossConfig?: BossConfig
@@ -185,6 +187,7 @@ export class GameScene extends Phaser.Scene {
     this.started = true
     this.paused = false
     this.transitioning = false
+    this.upgradeChoiceSource = 'level'
     this.bossActive = false
     this.targetX = WIDTH / 2
     this.targetY = HEIGHT - 132
@@ -246,6 +249,17 @@ export class GameScene extends Phaser.Scene {
     if (!this.state.pendingUpgrades?.includes(upgrade)) return
     this.state = applyUpgrade(this.state, upgrade)
     this.emitEvent('viral:sound', { kind: 'power' })
+    if (this.upgradeChoiceSource === 'fragment') {
+      this.state = { ...this.state, pendingUpgrades: undefined }
+      this.transitioning = false
+      this.physics.world.resume()
+      this.emitHud()
+      this.emitCheckpoint()
+      this.emitEvent('viral:toast', {
+        message: '技能强化成功，继续净化！',
+      })
+      return
+    }
     this.startLevel(this.state.worldLevel + 1, true)
   }
 
@@ -288,6 +302,7 @@ export class GameScene extends Phaser.Scene {
       pendingUpgrades: undefined,
       levelStartScore: this.state.score,
     }
+    this.upgradeChoiceSource = 'level'
     this.background.setTint(level.tint)
     this.spawnAt = this.time.now + 900
     this.transitioning = false
@@ -547,6 +562,7 @@ export class GameScene extends Phaser.Scene {
     this.cleanBurst(x, y)
     if (shouldSplit) this.spawnSplitFragments(x, y)
     this.maybeDropPowerup(x, y)
+    this.maybeDropSkillFragment(x, y)
     this.emitHud()
     this.emitEvent('viral:sound', { kind: 'clean' })
   }
@@ -666,13 +682,38 @@ export class GameScene extends Phaser.Scene {
     body.setVelocityY(95)
   }
 
+  private maybeDropSkillFragment(x: number, y: number): void {
+    if (!shouldDropSkillFragment(Math.random())) return
+    const fragment = this.powerups.get(x, y, 'skill-fragment') as
+      | Phaser.Physics.Arcade.Image
+      | null
+    if (!fragment) return
+    fragment
+      .setActive(true)
+      .setVisible(true)
+      .setTexture('skill-fragment')
+      .setData('kind', 'skill')
+      .setDepth(4)
+    const body = fragment.body as Phaser.Physics.Arcade.Body
+    body.enable = true
+    body.setVelocityY(75)
+  }
+
   private onCollectPowerup(
     _playerObject: Phaser.Types.Physics.Arcade.GameObjectWithBody,
     powerupObject: Phaser.Types.Physics.Arcade.GameObjectWithBody,
   ): void {
     const powerup = powerupObject as Phaser.Physics.Arcade.Image
-    const kind = powerup.getData('kind') as 'heart' | 'rapid' | 'shield'
+    const kind = powerup.getData('kind') as
+      | 'heart'
+      | 'rapid'
+      | 'shield'
+      | 'skill'
     this.disableObject(powerup)
+    if (kind === 'skill') {
+      this.showSkillFragmentChoice()
+      return
+    }
     if (kind === 'heart') {
       this.state = healPlayer(this.state)
     } else if (kind === 'rapid') {
@@ -698,8 +739,28 @@ export class GameScene extends Phaser.Scene {
     this.emitEvent('viral:sound', { kind: 'power' })
   }
 
+  private showSkillFragmentChoice(): void {
+    const options = chooseUpgradeOptions(
+      this.state.upgrades,
+      this.state.runSeed + this.state.score + this.state.cleaned,
+    )
+    if (options.length === 0) {
+      this.emitEvent('viral:toast', {
+        message: '所有技能都已经满级啦！',
+      })
+      return
+    }
+    this.state = { ...this.state, pendingUpgrades: options }
+    this.upgradeChoiceSource = 'fragment'
+    this.transitioning = true
+    this.physics.world.pause()
+    this.emitEvent('viral:skillFragment', { options })
+    this.emitEvent('viral:sound', { kind: 'power' })
+  }
+
   private completeLevel(): void {
     this.transitioning = true
+    this.upgradeChoiceSource = 'level'
     this.physics.world.pause()
     const level = getLevel(this.state.worldLevel)
     const options =
@@ -837,6 +898,7 @@ export class GameScene extends Phaser.Scene {
 
   private restorePendingUpgrade(): void {
     const level = getLevel(this.state.worldLevel)
+    this.upgradeChoiceSource = 'level'
     this.background.setTint(level.tint)
     this.transitioning = true
     this.physics.world.pause()
@@ -1126,6 +1188,22 @@ export class GameScene extends Phaser.Scene {
     graphics.fillCircle(19, 9, 8)
     graphics.fillTriangle(2, 12, 26, 12, 14, 28)
     graphics.generateTexture('heart', 28, 30)
+    graphics.clear()
+    graphics.fillStyle(0x866eff, 1)
+    graphics.fillPoints(
+      [
+        new Phaser.Geom.Point(16, 0),
+        new Phaser.Geom.Point(30, 14),
+        new Phaser.Geom.Point(16, 32),
+        new Phaser.Geom.Point(2, 14),
+      ],
+      true,
+    )
+    graphics.fillStyle(0xe9e4ff, 1)
+    graphics.fillTriangle(16, 4, 16, 27, 7, 14)
+    graphics.fillStyle(0xffffff, 1)
+    graphics.fillCircle(22, 9, 3)
+    graphics.generateTexture('skill-fragment', 32, 32)
     graphics.clear()
     graphics.fillStyle(0xffe26d, 1)
     graphics.fillPoints(

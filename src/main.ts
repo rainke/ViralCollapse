@@ -251,6 +251,37 @@ function button(
   return item
 }
 
+const upgrades: Record<UpgradeId, {
+  id: UpgradeId
+  icon: string
+  title: string
+  caption: string
+}> = {
+  damage: { id: 'damage', icon: '💥', title: '抗体强化', caption: '伤害 +18%' },
+  rapid: { id: 'rapid', icon: '⚡', title: '快速抗体', caption: '发射更快' },
+  spread: { id: 'spread', icon: '🔱', title: '扩散抗体', caption: '更多泡泡' },
+  health: { id: 'health', icon: '💙', title: '生命成长', caption: '上限 +15%' },
+  critical: { id: 'critical', icon: '🎯', title: '精准暴击', caption: '暴击 +10%' },
+  guard: { id: 'guard', icon: '🛡️', title: '坚固护盾', caption: '伤害 -8%' },
+  split: { id: 'split', icon: '✨', title: '抗体分裂', caption: '命中产生更多子抗体' },
+  pierce: { id: 'pierce', icon: '🧬', title: '抗体穿透', caption: '穿透更多病毒' },
+}
+
+function createUpgradeGrid(options: UpgradeId[]): HTMLElement {
+  const grid = document.createElement('div')
+  grid.className = 'upgrade-grid'
+  for (const upgradeId of options) {
+    const upgrade = upgrades[upgradeId]
+    const item = button('', 'upgrade-button', () => {
+      hideModal()
+      scene().chooseUpgrade(upgrade.id)
+    })
+    item.innerHTML = `<span>${upgrade.icon}</span>${upgrade.title}<small>${upgrade.caption}</small>`
+    grid.append(item)
+  }
+  return grid
+}
+
 function speak(level: number): void {
   const speech = getFactSpeech(level)
   if (speech) sound.playSpeech(speech.asset)
@@ -271,36 +302,18 @@ function showLevelComplete(detail: {
   const speakButton = button('🔊 听一听', 'speak-button', () =>
     speak(detail.level),
   )
-  const grid = document.createElement('div')
-  grid.className = 'upgrade-grid'
-  const upgrades: Record<UpgradeId, {
-    id: UpgradeId
-    icon: string
-    title: string
-    caption: string
-  }> = {
-    damage: { id: 'damage', icon: '💥', title: '抗体强化', caption: '伤害 +18%' },
-    rapid: { id: 'rapid', icon: '⚡', title: '快速抗体', caption: '发射更快' },
-    spread: { id: 'spread', icon: '🔱', title: '扩散抗体', caption: '更多泡泡' },
-    health: { id: 'health', icon: '💙', title: '生命成长', caption: '上限 +15%' },
-    critical: { id: 'critical', icon: '🎯', title: '精准暴击', caption: '暴击 +10%' },
-    guard: { id: 'guard', icon: '🛡️', title: '坚固护盾', caption: '伤害 -8%' },
-    split: { id: 'split', icon: '✨', title: '抗体分裂', caption: '命中产生更多子抗体' },
-    pierce: { id: 'pierce', icon: '🧬', title: '抗体穿透', caption: '穿透更多病毒' },
-  }
-
-  for (const upgradeId of detail.options) {
-    const upgrade = upgrades[upgradeId]
-    const item = button('', 'upgrade-button', () => {
-      hideModal()
-      scene().chooseUpgrade(upgrade.id)
-    })
-    item.innerHTML = `<span>${upgrade.icon}</span>${upgrade.title}<small>${upgrade.caption}</small>`
-    grid.append(item)
-  }
-  modalActions.append(speakButton, grid)
+  modalActions.append(speakButton, createUpgradeGrid(detail.options))
   showModal()
   if (detail.bossNext) showToast('选一个升级，然后挑战病毒王！', 2_400)
+}
+
+function showSkillFragment(detail: { options: UpgradeId[] }): void {
+  modalIcon.textContent = '💎'
+  modalKicker.textContent = '稀有掉落'
+  modalTitle.textContent = '捡到技能碎片！'
+  modalBody.textContent = '选择一项技能，立刻强化小卫士。'
+  modalActions.replaceChildren(createUpgradeGrid(detail.options))
+  showModal()
 }
 
 function showRevive(detail: { restart?: boolean } = {}): void {
@@ -437,6 +450,8 @@ window.addEventListener('viral:hud', ((event: CustomEvent) => {
 
 window.addEventListener('viral:levelComplete', ((event: CustomEvent) =>
   showLevelComplete(event.detail)) as EventListener)
+window.addEventListener('viral:skillFragment', ((event: CustomEvent) =>
+  showSkillFragment(event.detail)) as EventListener)
 window.addEventListener('viral:revive', ((event: CustomEvent) =>
   showRevive(event.detail)) as EventListener)
 window.addEventListener('viral:checkpoint', ((event: CustomEvent) =>
