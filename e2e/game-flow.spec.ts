@@ -367,6 +367,135 @@ test('HUD shows numeric health and a seeded three-choice upgrade', async ({
   )
 })
 
+test('a killed virus can drop a skill fragment that upgrades the current fight', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+
+  const drop = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    type GameObject = {
+      active: boolean
+      x: number
+      y: number
+      getData: (key: string) => unknown
+      setData: (key: string, value: unknown) => void
+    }
+    const scene = game.scene.getScene('game') as {
+      state: {
+        cleaned: number
+        worldLevel: number
+      }
+      player: { x: number; y: number }
+      enemies: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => GameObject[]
+      }
+      bullets: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => GameObject[]
+      }
+      powerups: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => GameObject[]
+      }
+      spawnEnemy: () => void
+      fireAntibodies: () => void
+      onBulletHitsEnemy: (bullet: GameObject, enemy: GameObject) => void
+      onCollectPowerup: (player: unknown, powerup: GameObject) => void
+    }
+
+    scene.enemies.clear(true, true)
+    scene.bullets.clear(true, true)
+    scene.powerups.clear(true, true)
+    const originalRandom = Math.random
+    Math.random = () => 0.05
+    scene.spawnEnemy()
+    scene.fireAntibodies()
+    const enemy = scene.enemies.getChildren().find((item) => item.active)
+    const bullet = scene.bullets.getChildren().find((item) => item.active)
+    if (!enemy || !bullet) throw new Error('Missing combat objects')
+    enemy.setData('health', 1)
+    scene.onBulletHitsEnemy(bullet, enemy)
+    Math.random = originalRandom
+
+    const fragment = scene.powerups
+      .getChildren()
+      .find((item) => item.active && item.getData('kind') === 'skill')
+    if (!fragment) {
+      return {
+        kinds: scene.powerups
+          .getChildren()
+          .filter((item) => item.active)
+          .map((item) => item.getData('kind')),
+      }
+    }
+    fragment.x = scene.player.x
+    fragment.y = scene.player.y
+    scene.onCollectPowerup(scene.player, fragment)
+    return {
+      kinds: ['skill'],
+      cleaned: scene.state.cleaned,
+      worldLevel: scene.state.worldLevel,
+    }
+  })
+
+  expect(drop).toMatchObject({
+    kinds: ['skill'],
+    cleaned: 1,
+    worldLevel: 1,
+  })
+  await expect(
+    page.getByRole('heading', { name: '捡到技能碎片！' }),
+  ).toBeVisible()
+  const options = page.locator('.upgrade-button')
+  await expect(options).toHaveCount(3)
+  await options.first().click()
+
+  const resumed = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      state: {
+        cleaned: number
+        worldLevel: number
+        pendingUpgrades?: string[]
+      }
+      transitioning: boolean
+      physics: { world: { isPaused: boolean } }
+    }
+    return {
+      cleaned: scene.state.cleaned,
+      worldLevel: scene.state.worldLevel,
+      pendingUpgrades: scene.state.pendingUpgrades,
+      transitioning: scene.transitioning,
+      physicsPaused: scene.physics.world.isPaused,
+    }
+  })
+
+  expect(resumed).toEqual({
+    cleaned: 1,
+    worldLevel: 1,
+    pendingUpgrades: undefined,
+    transitioning: false,
+    physicsPaused: false,
+  })
+})
+
 test('split and pierce combine on every antibody hit', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: '开始第一章' }).click()
