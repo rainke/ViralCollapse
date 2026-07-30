@@ -7,25 +7,27 @@ import {
 } from './content'
 
 describe('level content', () => {
-  it('ships six child-sized stages with boss fights at three and six', () => {
-    expect(LEVELS).toHaveLength(6)
+  it('ships ten chapter-one stages with boss fights at three and ten', () => {
+    expect(LEVELS).toHaveLength(10)
     expect(LEVELS.map((level) => level.name)).toEqual([
       '鼻腔花园',
       '呼吸通道',
       '埃博拉峡谷',
       '细胞迷宫',
       '免疫长廊',
+      '淋巴溪流',
+      '白细胞工坊',
+      '抗体星港',
+      '免疫防线',
       '冠状王座',
     ])
     expect(
       LEVELS.filter((level) => level.mode === 'boss').map(
         (level) => level.id,
       ),
-    ).toEqual([3, 6])
+    ).toEqual([3, 10])
     expect(LEVELS[2].boss?.type).toBe('ebola')
-    expect(LEVELS[5].boss?.type).toBe('corona')
-    expect(LEVELS[1].enemySpeed).toBeGreaterThan(LEVELS[0].enemySpeed)
-    expect(LEVELS[4].cleanTarget).toBeGreaterThan(LEVELS[3].cleanTarget)
+    expect(LEVELS[9].boss?.type).toBe('corona')
   })
 
   it('keeps the science copy short and actionable', () => {
@@ -40,14 +42,38 @@ describe('level content', () => {
     expect(getLevel(99)).toBe(LEVELS[0])
   })
 
-  it('advances through all six stages and stops after the final boss', () => {
+  it('advances through all ten stages and stops after the chapter boss', () => {
     expect(LEVELS.map((level) => getNextLevelId(level.id))).toEqual([
       2,
       3,
       4,
       5,
       6,
+      7,
+      8,
+      9,
+      10,
       null,
+    ])
+  })
+
+  it('keeps every wave enemy table normalized to 100', () => {
+    for (const level of LEVELS.filter((item) => item.mode === 'wave')) {
+      expect(
+        Object.values(level.enemyWeights).reduce(
+          (total, weight) => total + weight,
+          0,
+        ),
+      ).toBe(100)
+    }
+  })
+
+  it('adds the four requested child-friendly facts', () => {
+    expect(LEVELS.slice(5, 9).map((level) => level.fact.title)).toEqual([
+      '喝水好帮手',
+      '睡眠补能量',
+      '运动有力量',
+      '不舒服要说',
     ])
   })
 
@@ -62,8 +88,8 @@ describe('level content', () => {
       getEnemyForLevel(4, 0.45),
       getEnemyForLevel(4, 0.82),
       getEnemyForLevel(4, 0.95),
-      getEnemyForLevel(5, 0.85),
-      getEnemyForLevel(5, 0.95),
+      getEnemyForLevel(9, 0.85),
+      getEnemyForLevel(9, 0.95),
     ])
 
     expect(sampledTypes).toEqual(
@@ -99,17 +125,17 @@ describe('level content', () => {
     [4, 0.66, 'splitter'],
     [4, 0.78, 'adenovirus'],
     [4, 0.9, 'polyhedral'],
-    [5, 0.09, 'basic'],
-    [5, 0.11, 'fast'],
-    [5, 0.2, 'wobbly'],
-    [5, 0.29, 'splitter'],
-    [5, 0.38, 'rabies'],
-    [5, 0.47, 'pox'],
-    [5, 0.56, 'influenza'],
-    [5, 0.65, 'adenovirus'],
-    [5, 0.74, 'polyhedral'],
-    [5, 0.83, 'tough'],
-    [5, 0.92, 'wideMouth'],
+    [6, 0.01, 'basic'],
+    [6, 0.09, 'fast'],
+    [6, 0.21, 'wobbly'],
+    [6, 0.31, 'splitter'],
+    [6, 0.41, 'tough'],
+    [6, 0.47, 'influenza'],
+    [6, 0.59, 'adenovirus'],
+    [6, 0.67, 'rabies'],
+    [6, 0.79, 'pox'],
+    [6, 0.87, 'polyhedral'],
+    [6, 0.95, 'wideMouth'],
   ] as const)(
     'maps level %i at random value %f to %s',
     (level, randomValue, expected) => {

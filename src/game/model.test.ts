@@ -2,44 +2,52 @@ import { describe, expect, it } from 'vitest'
 import {
   applyDamage,
   applyUpgrade,
+  chooseUpgradeOptions,
   createGameState,
   deserializeSave,
+  getBulletPattern,
+  getChapterStars,
+  getFireInterval,
+  getPlayerCombatStats,
+  restartCurrentLevel,
   recordVirusCleaned,
   revivePlayer,
   serializeSave,
 } from './model'
 
 describe('game state', () => {
-  it('starts a gentle run with three hearts and no score', () => {
+  it('starts a chapter at battle level one with scaled health', () => {
     const state = createGameState()
 
     expect(state).toMatchObject({
-      hearts: 3,
-      maxHearts: 3,
+      health: 100,
+      maxHealth: 100,
       score: 0,
       cleaned: 0,
-      level: 1,
+      worldLevel: 1,
+      battleLevel: 1,
       invulnerableUntil: 0,
+      deaths: 0,
+      reviveUsed: false,
     })
   })
 
-  it('ignores repeated damage during the grace period', () => {
-    const firstHit = applyDamage(createGameState(), 1_000)
-    const repeatedHit = applyDamage(firstHit, 1_500)
+  it('applies actual damage and ignores repeated hits during grace', () => {
+    const firstHit = applyDamage(createGameState(), 14, 1_000)
+    const repeatedHit = applyDamage(firstHit, 14, 1_500)
 
-    expect(firstHit.hearts).toBe(2)
+    expect(firstHit.health).toBe(86)
     expect(firstHit.invulnerableUntil).toBe(2_200)
     expect(repeatedHit).toEqual(firstHit)
   })
 
-  it('accepts damage after the grace period and never drops below zero', () => {
-    let state = createGameState()
-    state = applyDamage(state, 0)
-    state = applyDamage(state, 1_200)
-    state = applyDamage(state, 2_400)
-    state = applyDamage(state, 3_600)
-
-    expect(state.hearts).toBe(0)
+  it('applies damage reduction and never drops below zero', () => {
+    const state = {
+      ...createGameState(),
+      health: 10,
+      upgrades: { ...createGameState().upgrades, guard: 2 },
+    }
+    expect(applyDamage(state, 20, 0).health).toBe(0)
   })
 
   it('counts cleaned viruses and scores by enemy value', () => {
@@ -49,76 +57,157 @@ describe('game state', () => {
     expect(state.score).toBe(25)
   })
 
-  it('restores all hearts on an encouraging revive without losing progress', () => {
+  it('offers one in-place revive at 60% health, then restarts the checkpoint', () => {
     const damaged = {
-      ...recordVirusCleaned(applyDamage(createGameState(), 0), 25),
-      hearts: 0,
+      ...recordVirusCleaned(createGameState(), 25),
+      health: 0,
     }
     const revived = revivePlayer(damaged, 5_000)
 
-    expect(revived.hearts).toBe(3)
+    expect(revived.health).toBe(60)
     expect(revived.score).toBe(25)
     expect(revived.cleaned).toBe(1)
     expect(revived.invulnerableUntil).toBe(7_500)
+    expect(revived.reviveUsed).toBe(true)
+    expect(revived.deaths).toBe(1)
+
+    const restarted = restartCurrentLevel({
+      ...revived,
+      health: 0,
+      score: 90,
+      cleaned: 12,
+      levelStartScore: 25,
+    })
+    expect(restarted).toMatchObject({
+      health: 100,
+      score: 25,
+      cleaned: 0,
+      deaths: 2,
+      reviveUsed: false,
+    })
   })
 })
 
 describe('upgrades', () => {
-  it('applies rapid, spread and shield upgrades with safe caps', () => {
+  it('applies all six routes with safe caps', () => {
     let state = createGameState()
 
-    for (let index = 0; index < 5; index += 1) {
+    for (let index = 0; index < 8; index += 1) {
+      state = applyUpgrade(state, 'damage')
       state = applyUpgrade(state, 'rapid')
       state = applyUpgrade(state, 'spread')
-      state = applyUpgrade(state, 'shield')
+      state = applyUpgrade(state, 'health')
+      state = applyUpgrade(state, 'critical')
+      state = applyUpgrade(state, 'guard')
     }
 
     expect(state.upgrades).toEqual({
-      rapid: 3,
+      damage: 5,
+      rapid: 5,
       spread: 2,
-      shield: 2,
+      health: 4,
+      critical: 4,
+      guard: 4,
     })
-    expect(state.hearts).toBe(state.maxHearts)
+  })
+
+  it('calculates damage, fire rate, spread, critical and healing effects', () => {
+    let state = createGameState()
+    state = applyUpgrade(state, 'damage')
+    state = applyUpgrade(state, 'rapid')
+    state = applyUpgrade(state, 'spread')
+    state = applyUpgrade({ ...state, health: 50 }, 'health')
+    state = applyUpgrade(state, 'critical')
+
+    expect(getPlayerCombatStats(state)).toMatchObject({
+      damage: 12,
+      criticalChance: 0.1,
+      criticalMultiplier: 1.75,
+      damageReduction: 0,
+    })
+    expect(getFireInterval(state)).toBeCloseTo(354.9)
+    expect(getBulletPattern(state)).toEqual([
+      { angle: -9, damageMultiplier: 0.7 },
+      { angle: 9, damageMultiplier: 0.7 },
+    ])
+    expect(state.maxHealth).toBe(115)
+    expect(state.health).toBe(79)
+  })
+
+  it('draws three stable distinct options with offense and defense', () => {
+    const state = createGameState()
+    const first = chooseUpgradeOptions(state.upgrades, 12345)
+    const again = chooseUpgradeOptions(state.upgrades, 12345)
+
+    expect(first).toEqual(again)
+    expect(new Set(first).size).toBe(3)
+    expect(first.some((id) => ['damage', 'rapid', 'spread', 'critical'].includes(id))).toBe(true)
+    expect(first.some((id) => ['health', 'guard'].includes(id))).toBe(true)
+  })
+
+  it('never offers capped routes', () => {
+    const upgrades = {
+      ...createGameState().upgrades,
+      damage: 5,
+      health: 4,
+    }
+    const options = chooseUpgradeOptions(upgrades, 8)
+
+    expect(options).not.toContain('damage')
+    expect(options).not.toContain('health')
+  })
+
+  it('rates chapters by deaths rather than damage taken', () => {
+    expect(getChapterStars(0)).toBe(3)
+    expect(getChapterStars(1)).toBe(2)
+    expect(getChapterStars(2)).toBe(2)
+    expect(getChapterStars(3)).toBe(1)
   })
 })
 
 describe('save data', () => {
-  it('round trips safe settings and best results', () => {
+  it('round trips v2 settings, chapter records and run checkpoint', () => {
     const encoded = serializeSave({
-      version: 1,
+      version: 2,
       muted: true,
-      bestScore: 420,
-      bestStars: 3,
+      highestCompletedLevel: 12,
+      chapters: { 1: { bestScore: 420, bestStars: 3 } },
+      run: {
+        chapter: 2,
+        worldLevel: 12,
+        health: 118,
+        maxHealth: 130,
+        battleLevel: 2,
+        upgrades: createGameState().upgrades,
+        score: 80,
+        deaths: 1,
+        runSeed: 77,
+        pendingUpgrades: ['damage', 'health', 'rapid'],
+      },
     })
 
-    expect(deserializeSave(encoded)).toEqual({
-      version: 1,
-      muted: true,
-      bestScore: 420,
-      bestStars: 3,
-    })
+    expect(deserializeSave(encoded)).toEqual(JSON.parse(encoded))
   })
 
-  it('falls back for corrupt or incompatible saves', () => {
+  it('falls back for corrupt saves', () => {
     expect(deserializeSave('not json')).toEqual({
-      version: 1,
+      version: 2,
       muted: false,
-      bestScore: 0,
-      bestStars: 0,
+      highestCompletedLevel: 0,
+      chapters: {},
     })
-    expect(deserializeSave('{"version":99}').bestScore).toBe(0)
   })
 
-  it('sanitizes untrusted values', () => {
+  it('migrates v1 settings and score into chapter one without old build data', () => {
     const save = deserializeSave(
-      '{"version":1,"muted":"yes","bestScore":-4,"bestStars":9}',
+      '{"version":1,"muted":true,"bestScore":420,"bestStars":3}',
     )
 
     expect(save).toEqual({
-      version: 1,
-      muted: false,
-      bestScore: 0,
-      bestStars: 3,
+      version: 2,
+      muted: true,
+      highestCompletedLevel: 0,
+      chapters: { 1: { bestScore: 420, bestStars: 3 } },
     })
   })
 })
