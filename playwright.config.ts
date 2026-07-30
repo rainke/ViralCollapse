@@ -5,13 +5,13 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   use: {
-    baseURL: 'http://127.0.0.1:4173',
+    baseURL: 'http://127.0.0.1:4187',
     trace: 'retain-on-failure',
     ...devices['Pixel 7'],
   },
   webServer: {
-    command: 'pnpm dev --host 127.0.0.1 --port 4173',
-    url: 'http://127.0.0.1:4173',
-    reuseExistingServer: true,
+    command: 'pnpm dev --host 127.0.0.1 --port 4187',
+    url: 'http://127.0.0.1:4187',
+    reuseExistingServer: false,
   },
 })

@@ -47,8 +47,8 @@ describe('campaign balance', () => {
       spawnEvery: 533,
       scoreMultiplier: 3.52,
     })
-    expect(getEnemyStats(100, 'fast').speed).toBe(216)
-    expect(getEnemyStats(100, 'wideMouth').speed).toBeCloseTo(97.65)
+    expect(getEnemyStats(100, 'fast').speed).toBeCloseTo(228.69)
+    expect(getEnemyStats(100, 'wideMouth').speed).toBeCloseTo(97.02)
     expect(getEnemyStats(100, 'basic').speed).toBeLessThanOrEqual(240)
   })
 

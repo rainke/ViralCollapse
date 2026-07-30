@@ -26,7 +26,27 @@
   },
   {
     "level": 6,
-    "text": "疫苗小盾牌。疫苗会帮助身体提前练习怎样保护自己。",
+    "text": "喝水好帮手。每天记得喝水，让身体舒服地工作。",
     "asset": "/assets/generated/speech/fact-6.wav"
+  },
+  {
+    "level": 7,
+    "text": "睡眠补能量。早点睡好好休息，身体会补充能量。",
+    "asset": "/assets/generated/speech/fact-7.wav"
+  },
+  {
+    "level": 8,
+    "text": "运动有力量。跑跑跳跳做运动，身体会更有力量。",
+    "asset": "/assets/generated/speech/fact-8.wav"
+  },
+  {
+    "level": 9,
+    "text": "不舒服要说。身体不舒服时，要及时告诉信任的大人。",
+    "asset": "/assets/generated/speech/fact-9.wav"
+  },
+  {
+    "level": 10,
+    "text": "疫苗小盾牌。疫苗会帮助身体提前练习怎样保护自己。",
+    "asset": "/assets/generated/speech/fact-10.wav"
   }
 ]

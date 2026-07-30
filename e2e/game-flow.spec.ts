@@ -8,9 +8,9 @@ test('a child can start the game from the portrait home screen', async ({
   await page.goto('/')
 
   await expect(page).toHaveTitle(/病毒大扫除/)
-  await expect(page.getByRole('button', { name: '开始净化' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '开始净化' })).toBeEnabled()
-  await page.getByRole('button', { name: '开始净化' }).click()
+  await expect(page.getByRole('button', { name: '开始第一章' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '开始第一章' })).toBeEnabled()
+  await page.getByRole('button', { name: '开始第一章' }).click()
   await expect(page.locator('#game-canvas canvas')).toBeVisible()
   await expect(page.getByText('拖动小卫士')).toBeVisible()
   expect(pageErrors).toEqual([])
@@ -27,7 +27,7 @@ test('the page prevents accidental touch gestures during play', async ({
 
 test('pause and resume keep the child in the same run', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: '开始净化' }).click()
+  await page.getByRole('button', { name: '开始第一章' }).click()
 
   await page.getByRole('button', { name: '暂停游戏' }).click()
   await expect(page.getByRole('heading', { name: '休息一下' })).toBeVisible()
@@ -40,7 +40,7 @@ test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
   await page.goto('/')
 
   const preloadedSpeech = page.locator('link[rel="preload"][as="audio"]')
-  await expect(preloadedSpeech).toHaveCount(6)
+  await expect(preloadedSpeech).toHaveCount(10)
   await expect(preloadedSpeech.evaluateAll((links) => links.map((link) => link.getAttribute('href')))).resolves.toEqual([
     '/assets/generated/speech/fact-1.wav',
     '/assets/generated/speech/fact-2.wav',
@@ -48,6 +48,10 @@ test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
     '/assets/generated/speech/fact-4.wav',
     '/assets/generated/speech/fact-5.wav',
     '/assets/generated/speech/fact-6.wav',
+    '/assets/generated/speech/fact-7.wav',
+    '/assets/generated/speech/fact-8.wav',
+    '/assets/generated/speech/fact-9.wav',
+    '/assets/generated/speech/fact-10.wav',
   ])
 
   await page.evaluate(() => {
@@ -61,6 +65,7 @@ test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
             body: '鼻毛和黏液会帮助挡住灰尘和小坏蛋。',
           },
           bossNext: false,
+          options: ['damage', 'health', 'rapid'],
         },
       }),
     )
@@ -73,7 +78,7 @@ test('player, bullets and viruses use real visible collision areas', async ({
   page,
 }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: '开始净化' }).click()
+  await page.getByRole('button', { name: '开始第一章' }).click()
 
   const bodySizes = await page.evaluate(() => {
     const game = (
@@ -135,14 +140,14 @@ test('player, bullets and viruses use real visible collision areas', async ({
     enemy.body.setVelocity(0, 0)
   })
 
-  await expect(page.locator('#hearts')).toContainText('💙💙🤍')
+  await expect(page.locator('#health-value')).toContainText('86/100')
 })
 
 test('book-inspired viruses use distinct silhouettes and collision areas', async ({
   page,
 }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: '开始净化' }).click()
+  await page.getByRole('button', { name: '开始第一章' }).click()
 
   const bosses = await page.evaluate(() => {
     const game = (
@@ -174,8 +179,8 @@ test('book-inspired viruses use distinct silhouettes and collision areas', async
       texture: scene.boss.texture.key,
       bodyWidth: scene.boss.body.width,
     }
-    scene.startLevel(6)
-    const sixth = {
+    scene.startLevel(10)
+    const tenth = {
       texture: scene.boss.texture.key,
       bodyWidth: scene.boss.body.width,
     }
@@ -191,7 +196,7 @@ test('book-inspired viruses use distinct silhouettes and collision areas', async
         bodyWidth: enemy.body.width,
       }
     }
-    const influenza = spawnAt(4, 0.4)
+    const influenza = spawnAt(4, 0.66)
     const adenovirus = spawnAt(4, 0.8)
     const rabies = spawnAt(2, 0.75)
     const pox = spawnAt(2, 0.9)
@@ -200,7 +205,7 @@ test('book-inspired viruses use distinct silhouettes and collision areas', async
     Math.random = originalRandom
     return {
       third,
-      sixth,
+      tenth,
       influenza,
       adenovirus,
       rabies,
@@ -211,7 +216,7 @@ test('book-inspired viruses use distinct silhouettes and collision areas', async
   })
 
   expect(bosses.third.texture).toBe('virus-ebola-boss')
-  expect(bosses.sixth.texture).toBe('virus-corona-boss')
+  expect(bosses.tenth.texture).toBe('virus-corona-boss')
   expect(bosses.influenza.texture).toBe('virus-influenza')
   expect(bosses.adenovirus.texture).toBe('virus-adenovirus')
   expect(bosses.rabies.texture).toBe('virus-rabies')
@@ -219,7 +224,7 @@ test('book-inspired viruses use distinct silhouettes and collision areas', async
   expect(bosses.polyhedral.texture).toBe('virus-polyhedral')
   expect(bosses.wideMouth.texture).toBe('virus-wide-mouth')
   expect(bosses.third.bodyWidth).toBeGreaterThan(80)
-  expect(bosses.sixth.bodyWidth).toBeGreaterThan(80)
+  expect(bosses.tenth.bodyWidth).toBeGreaterThan(80)
   expect(bosses.influenza.bodyWidth).toBeGreaterThan(40)
   expect(bosses.adenovirus.bodyWidth).toBeGreaterThan(40)
   expect(bosses.rabies.bodyWidth).toBeGreaterThan(36)
@@ -241,7 +246,7 @@ test('player death explodes before the revive dialog transitions in', async ({
     }
   })
   await page.goto('/')
-  await page.getByRole('button', { name: '开始净化' }).click()
+  await page.getByRole('button', { name: '开始第一章' }).click()
   await page.waitForFunction(() => '__viralGame' in window)
 
   const deathState = await page.evaluate(() => {
@@ -261,7 +266,7 @@ test('player death explodes before the revive dialog transitions in', async ({
     if (!game) throw new Error('Missing development game handle')
     const scene = game.scene.getScene('game') as {
       state: {
-        hearts: number
+        health: number
         invulnerableUntil: number
       }
       player: unknown
@@ -275,7 +280,7 @@ test('player death explodes before the revive dialog transitions in', async ({
       onPlayerHitsDanger: (player: unknown, danger: unknown) => void
     }
 
-    scene.state.hearts = 1
+    scene.state.health = 1
     scene.state.invulnerableUntil = 0
     scene.spawnEnemy()
     scene.onPlayerHitsDanger(scene.player, scene.enemies.getChildren()[0])
@@ -307,4 +312,189 @@ test('player death explodes before the revive dialog transitions in', async ({
     Number.parseFloat(getComputedStyle(modal).transitionDuration),
   )
   expect(transitionDuration).toBeGreaterThan(0)
+})
+
+test('HUD shows numeric health and a seeded three-choice upgrade', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+
+  await expect(page.locator('#health-value')).toHaveText('100/100')
+  await expect(page.locator('#power-label')).toHaveText(
+    '战斗 Lv.1 · 攻击 10',
+  )
+
+  await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      state: { pendingUpgrades?: string[] }
+    }
+    scene.state.pendingUpgrades = ['damage', 'health', 'rapid']
+    window.dispatchEvent(
+      new CustomEvent('viral:levelComplete', {
+        detail: {
+          level: 1,
+          fact: {
+            emoji: '🫧',
+            title: '鼻子小卫士',
+            body: '鼻毛和黏液会帮助挡住灰尘和小坏蛋。',
+          },
+          bossNext: false,
+          options: scene.state.pendingUpgrades,
+        },
+      }),
+    )
+  })
+
+  const options = page.locator('.upgrade-button')
+  await expect(options).toHaveCount(3)
+  await expect(options).toContainText([
+    '抗体强化伤害 +18%',
+    '生命成长上限 +15%',
+    '快速抗体发射更快',
+  ])
+  await options.filter({ hasText: '抗体强化' }).click()
+  await expect(page.locator('#power-label')).toHaveText(
+    '战斗 Lv.2 · 攻击 12',
+  )
+})
+
+test('saved chapter checkpoint continues from its world level', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'viral-collapse-save',
+      JSON.stringify({
+        version: 2,
+        muted: false,
+        highestCompletedLevel: 6,
+        chapters: {},
+        run: {
+          chapter: 1,
+          worldLevel: 7,
+          health: 80,
+          maxHealth: 130,
+          battleLevel: 7,
+          upgrades: {
+            damage: 1,
+            rapid: 1,
+            spread: 0,
+            health: 1,
+            critical: 0,
+            guard: 0,
+          },
+          score: 300,
+          deaths: 1,
+          runSeed: 77,
+          pendingUpgrades: ['critical', 'health', 'rapid'],
+        },
+      }),
+    )
+  })
+  await page.goto('/')
+
+  await page.getByRole('button', { name: '继续第 7 关' }).click()
+  await expect(page.locator('#stage-number')).toHaveText('第 7 关')
+  await expect(page.locator('#health-value')).toHaveText('80/130')
+  await expect(page.locator('#power-label')).toContainText('战斗 Lv.7')
+  await expect(page.locator('.upgrade-button')).toContainText([
+    '精准暴击暴击 +10%',
+    '生命成长上限 +15%',
+    '快速抗体发射更快',
+  ])
+})
+
+test('one free revive is followed by a full-health level restart', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+  await page.waitForFunction(() => '__viralGame' in window)
+
+  const defeat = async () => {
+    await page.evaluate(() => {
+      const game = (
+        window as Window & {
+          __viralGame?: {
+            scene: { getScene: (key: string) => unknown }
+          }
+        }
+      ).__viralGame
+      if (!game) throw new Error('Missing development game handle')
+      const scene = game.scene.getScene('game') as {
+        state: { health: number; invulnerableUntil: number }
+        player: unknown
+        enemies: { getChildren: () => unknown[] }
+        spawnEnemy: () => void
+        onPlayerHitsDanger: (player: unknown, danger: unknown) => void
+      }
+      scene.state.health = 1
+      scene.state.invulnerableUntil = 0
+      scene.spawnEnemy()
+      const danger = scene.enemies.getChildren().at(-1)
+      scene.onPlayerHitsDanger(scene.player, danger)
+    })
+  }
+
+  await defeat()
+  await expect(
+    page.getByRole('heading', { name: '小卫士充好电啦' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '原地继续！' }).click()
+  await expect(page.locator('#health-value')).toHaveText('60/100')
+
+  await defeat()
+  await expect(
+    page.getByRole('heading', { name: '重新挑战本关' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '满血重开本关' }).click()
+  await expect(page.locator('#health-value')).toHaveText('100/100')
+  await expect(page.locator('#score')).toHaveText('0')
+})
+
+test('level ten completes the chapter with death-based stars', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+  await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      state: {
+        worldLevel: number
+        battleLevel: number
+        score: number
+        deaths: number
+      }
+      finishRun: () => void
+    }
+    scene.state.worldLevel = 10
+    scene.state.battleLevel = 10
+    scene.state.score = 1_234
+    scene.state.deaths = 1
+    scene.finishRun()
+  })
+
+  await expect(page.getByText('第 1 章完成')).toBeVisible()
+  await expect(page.locator('#modal-body')).toContainText('⭐⭐')
+  await expect(page.locator('#modal-body')).toContainText('1234')
+  await expect(
+    page.getByRole('button', { name: '开始下一章' }),
+  ).toBeVisible()
 })

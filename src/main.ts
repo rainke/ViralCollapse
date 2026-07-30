@@ -2,9 +2,11 @@ import Phaser from 'phaser'
 import './styles.css'
 import { GameScene } from './game/GameScene'
 import {
+  createGameState,
   deserializeSave,
   serializeSave,
   type GameSave,
+  type RunSave,
   type UpgradeId,
 } from './game/model'
 import { getFactSpeech } from './game/speech'
@@ -173,7 +175,41 @@ function updateSoundLabels(): void {
 function persistSave(patch: Partial<GameSave>): void {
   save = { ...save, ...patch }
   localStorage.setItem(SAVE_KEY, serializeSave(save))
-  element('#best-score').textContent = `最高分 ${save.bestScore}`
+  const bestScore = Math.max(
+    0,
+    ...Object.values(save.chapters).map((record) => record.bestScore),
+  )
+  element('#best-score').textContent = `最高分 ${bestScore}`
+  updateStartLabel()
+}
+
+function nextWorldLevel(): number {
+  if (save.run) return save.run.worldLevel
+  return Math.min(100, save.highestCompletedLevel + 1)
+}
+
+function updateStartLabel(): void {
+  const level = nextWorldLevel()
+  startButton.textContent =
+    level === 1 ? '开始第一章' : `继续第 ${level} 关`
+}
+
+function createRun(worldLevel: number): RunSave {
+  const state = createGameState(
+    worldLevel,
+    crypto.getRandomValues(new Uint32Array(1))[0],
+  )
+  return {
+    chapter: Math.floor((worldLevel - 1) / 10) + 1,
+    worldLevel,
+    health: state.health,
+    maxHealth: state.maxHealth,
+    battleLevel: state.battleLevel,
+    upgrades: state.upgrades,
+    score: 0,
+    deaths: 0,
+    runSeed: state.runSeed,
+  }
 }
 
 function setMuted(muted: boolean): void {
@@ -224,6 +260,7 @@ function showLevelComplete(detail: {
   level: number
   fact: { emoji: string; title: string; body: string }
   bossNext: boolean
+  options: UpgradeId[]
 }): void {
   modalIcon.textContent = detail.fact.emoji
   modalKicker.textContent = `第 ${detail.level} 关完成 · 小知识`
@@ -236,18 +273,22 @@ function showLevelComplete(detail: {
   )
   const grid = document.createElement('div')
   grid.className = 'upgrade-grid'
-  const upgrades: Array<{
+  const upgrades: Record<UpgradeId, {
     id: UpgradeId
     icon: string
     title: string
     caption: string
-  }> = [
-    { id: 'rapid', icon: '⚡', title: '快速抗体', caption: '发射更快' },
-    { id: 'spread', icon: '🔱', title: '扩散抗体', caption: '更多泡泡' },
-    { id: 'shield', icon: '💙', title: '能量护盾', caption: '恢复爱心' },
-  ]
+  }> = {
+    damage: { id: 'damage', icon: '💥', title: '抗体强化', caption: '伤害 +18%' },
+    rapid: { id: 'rapid', icon: '⚡', title: '快速抗体', caption: '发射更快' },
+    spread: { id: 'spread', icon: '🔱', title: '扩散抗体', caption: '更多泡泡' },
+    health: { id: 'health', icon: '💙', title: '生命成长', caption: '上限 +15%' },
+    critical: { id: 'critical', icon: '🎯', title: '精准暴击', caption: '暴击 +10%' },
+    guard: { id: 'guard', icon: '🛡️', title: '坚固护盾', caption: '伤害 -8%' },
+  }
 
-  for (const upgrade of upgrades) {
+  for (const upgradeId of detail.options) {
+    const upgrade = upgrades[upgradeId]
     const item = button('', 'upgrade-button', () => {
       hideModal()
       scene().chooseUpgrade(upgrade.id)
@@ -260,16 +301,22 @@ function showLevelComplete(detail: {
   if (detail.bossNext) showToast('选一个升级，然后挑战病毒王！', 2_400)
 }
 
-function showRevive(): void {
+function showRevive(detail: { restart?: boolean } = {}): void {
   modalIcon.textContent = '💙'
-  modalKicker.textContent = '别担心'
-  modalTitle.textContent = '小卫士充好电啦'
-  modalBody.textContent = '休息一下，再勇敢地继续出发！'
+  modalKicker.textContent = detail.restart ? '再试一次' : '免费续命'
+  modalTitle.textContent = detail.restart ? '重新挑战本关' : '小卫士充好电啦'
+  modalBody.textContent = detail.restart
+    ? '本关分数和进度会回到起点，章内升级都会保留。'
+    : '恢复 60% 生命，并获得 2.5 秒无敌！'
   modalActions.replaceChildren(
-    button('能量满满，继续！', 'primary-button', () => {
-      hideModal()
-      scene().revive()
-    }),
+    button(
+      detail.restart ? '满血重开本关' : '原地继续！',
+      'primary-button',
+      () => {
+        hideModal()
+        scene().revive()
+      },
+    ),
   )
   showModal()
 }
@@ -278,19 +325,40 @@ function showVictory(detail: {
   score: number
   stars: number
   cleaned: number
+  chapter: number
+  completedLevel: number
 }): void {
-  const bestScore = Math.max(save.bestScore, detail.score)
-  const bestStars = Math.max(save.bestStars, detail.stars)
-  persistSave({ bestScore, bestStars })
+  const previous = save.chapters[detail.chapter]
+  persistSave({
+    highestCompletedLevel: Math.max(
+      save.highestCompletedLevel,
+      detail.completedLevel,
+    ),
+    chapters: {
+      ...save.chapters,
+      [detail.chapter]: {
+        bestScore: Math.max(previous?.bestScore ?? 0, detail.score),
+        bestStars: Math.max(previous?.bestStars ?? 0, detail.stars),
+      },
+    },
+    run: undefined,
+  })
   modalIcon.textContent = '🏆'
-  modalKicker.textContent = '任务完成'
-  modalTitle.textContent = '身体恢复活力！'
+  modalKicker.textContent = `第 ${detail.chapter} 章完成`
+  modalTitle.textContent =
+    detail.completedLevel >= 100 ? '百关全部净化！' : '身体恢复活力！'
   modalBody.innerHTML = `${'⭐'.repeat(detail.stars)}<br>获得 ${detail.score} 分`
   modalActions.replaceChildren(
-    button('再玩一次', 'primary-button', () => {
-      hideModal()
-      scene().begin()
-    }),
+    button(
+      detail.completedLevel >= 100 ? '再玩第一章' : '开始下一章',
+      'primary-button',
+      () => {
+        hideModal()
+        const level =
+          detail.completedLevel >= 100 ? 1 : detail.completedLevel + 1
+        scene().begin(createRun(level))
+      },
+    ),
     button('回到首页', 'secondary-button', () => {
       hideModal()
       hud.classList.add('is-hidden')
@@ -306,7 +374,7 @@ startButton.addEventListener('click', () => {
   home.classList.add('is-hidden')
   hud.classList.remove('is-hidden')
   tutorial.classList.remove('is-hidden')
-  scene().begin()
+  scene().begin(save.run ?? createRun(nextWorldLevel()))
   window.setTimeout(() => tutorial.classList.add('is-hidden'), 3_200)
 })
 
@@ -321,7 +389,11 @@ element('#resume-button').addEventListener('click', () => {
 
 element('#restart-button').addEventListener('click', () => {
   pausePanel.classList.add('is-hidden')
-  scene().begin()
+  const chapterStart =
+    Math.floor((nextWorldLevel() - 1) / 10) * 10 + 1
+  const run = createRun(chapterStart)
+  persistSave({ run })
+  scene().begin(run)
 })
 
 element('#home-sound').addEventListener('click', () => setMuted(!sound.muted))
@@ -336,17 +408,20 @@ window.addEventListener('blur', () => {
 
 window.addEventListener('viral:hud', ((event: CustomEvent) => {
   const detail = event.detail as {
-    hearts: number
-    maxHearts: number
+    health: number
+    maxHealth: number
     score: number
     level: number
+    battleLevel: number
     levelName: string
     progress: number
-    weaponLevel: number
+    damage: number
     boss?: boolean
   }
-  element('#hearts').textContent =
-    '💙'.repeat(detail.hearts) + '🤍'.repeat(detail.maxHearts - detail.hearts)
+  element('#health-value').textContent =
+    `${detail.health}/${detail.maxHealth}`
+  element<HTMLElement>('#health-fill').style.width =
+    `${Math.round((detail.health / detail.maxHealth) * 100)}%`
   element('#score').textContent = String(detail.score)
   element('#stage-number').textContent = detail.boss
     ? `第 ${detail.level} 关 · BOSS`
@@ -354,12 +429,16 @@ window.addEventListener('viral:hud', ((event: CustomEvent) => {
   element('#stage-name').textContent = detail.levelName
   element<HTMLElement>('#progress-fill').style.width =
     `${Math.round(detail.progress * 100)}%`
-  element('#power-label').textContent = `抗体 Lv.${detail.weaponLevel}`
+  element('#power-label').textContent =
+    `战斗 Lv.${detail.battleLevel} · 攻击 ${detail.damage}`
 }) as EventListener)
 
 window.addEventListener('viral:levelComplete', ((event: CustomEvent) =>
   showLevelComplete(event.detail)) as EventListener)
-window.addEventListener('viral:revive', showRevive)
+window.addEventListener('viral:revive', ((event: CustomEvent) =>
+  showRevive(event.detail)) as EventListener)
+window.addEventListener('viral:checkpoint', ((event: CustomEvent) =>
+  persistSave({ run: event.detail })) as EventListener)
 window.addEventListener('viral:victory', ((event: CustomEvent) =>
   showVictory(event.detail)) as EventListener)
 window.addEventListener('viral:toast', ((event: CustomEvent) =>

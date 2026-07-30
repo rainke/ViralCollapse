@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  advanceToLevel,
   applyDamage,
   applyUpgrade,
+  calculateBulletDamage,
   chooseUpgradeOptions,
   createGameState,
   deserializeSave,
@@ -9,10 +11,12 @@ import {
   getChapterStars,
   getFireInterval,
   getPlayerCombatStats,
+  healPlayer,
   restartCurrentLevel,
   recordVirusCleaned,
   revivePlayer,
   serializeSave,
+  type UpgradeId,
 } from './model'
 
 describe('game state', () => {
@@ -48,6 +52,17 @@ describe('game state', () => {
       upgrades: { ...createGameState().upgrades, guard: 2 },
     }
     expect(applyDamage(state, 20, 0).health).toBe(0)
+  })
+
+  it('consumes a bubble immunity charge before health', () => {
+    const shielded = {
+      ...createGameState(),
+      damageImmunityCharges: 1,
+    }
+    const hit = applyDamage(shielded, 99, 0)
+
+    expect(hit.health).toBe(100)
+    expect(hit.damageImmunityCharges).toBe(0)
   })
 
   it('counts cleaned viruses and scores by enemy value', () => {
@@ -132,6 +147,46 @@ describe('upgrades', () => {
     ])
     expect(state.maxHealth).toBe(115)
     expect(state.health).toBe(79)
+    expect(calculateBulletDamage(state, 0.7, false)).toBe(8)
+    expect(calculateBulletDamage(state, 0.7, true)).toBe(15)
+  })
+
+  it('uses three 60% shots at spread two and floors tiny damage to one', () => {
+    const state = {
+      ...createGameState(),
+      upgrades: { ...createGameState().upgrades, spread: 2 },
+    }
+
+    expect(getBulletPattern(state)).toEqual([
+      { angle: -16, damageMultiplier: 0.6 },
+      { angle: 0, damageMultiplier: 0.6 },
+      { angle: 16, damageMultiplier: 0.6 },
+    ])
+    expect(calculateBulletDamage(state, 0.001, false)).toBe(1)
+  })
+
+  it('raises max health and heals 20% when battle level advances', () => {
+    const state = {
+      ...createGameState(),
+      health: 20,
+      score: 45,
+      cleaned: 10,
+      reviveUsed: true,
+      pendingUpgrades: ['damage', 'health', 'rapid'] as UpgradeId[],
+    }
+    const next = advanceToLevel(state, 2)
+
+    expect(next).toMatchObject({
+      worldLevel: 2,
+      battleLevel: 2,
+      maxHealth: 105,
+      health: 41,
+      cleaned: 0,
+      levelStartScore: 45,
+      reviveUsed: false,
+      pendingUpgrades: undefined,
+    })
+    expect(healPlayer({ ...next, health: 100 }).health).toBe(105)
   })
 
   it('draws three stable distinct options with offense and defense', () => {

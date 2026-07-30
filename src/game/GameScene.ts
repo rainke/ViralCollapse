@@ -3,17 +3,32 @@ import { HITBOXES, type SourceCircle } from './collision'
 import {
   getEnemyForLevel,
   getLevel,
-  getNextLevelId,
   type BossConfig,
   type EnemyType,
 } from './content'
 import {
+  getBossStats,
+  getEnemyStats,
+  getLevelPosition,
+  getLevelStats,
+} from './balance'
+import {
+  advanceToLevel,
   applyDamage,
   applyUpgrade,
+  calculateBulletDamage,
+  chooseUpgradeOptions,
   createGameState,
+  getBulletPattern,
+  getChapterStars,
+  getFireInterval,
+  getPlayerCombatStats,
+  healPlayer,
   recordVirusCleaned,
+  restartCurrentLevel,
   revivePlayer,
   type GameState,
+  type RunSave,
   type UpgradeId,
 } from './model'
 
@@ -26,13 +41,14 @@ type EnemySprite = Phaser.Physics.Arcade.Image & {
 }
 
 interface HudDetail {
-  hearts: number
-  maxHearts: number
+  health: number
+  maxHealth: number
   score: number
   level: number
+  battleLevel: number
   levelName: string
   progress: number
-  weaponLevel: number
+  damage: number
   boss?: boolean
 }
 
@@ -55,7 +71,6 @@ export class GameScene extends Phaser.Scene {
   private spawnAt = 0
   private firedAt = 0
   private bossFiredAt = 0
-  private damageTaken = 0
   private targetX = WIDTH / 2
   private targetY = HEIGHT - 132
 
@@ -147,20 +162,38 @@ export class GameScene extends Phaser.Scene {
     this.emitEvent('viral:ready')
   }
 
-  begin(): void {
+  begin(run?: RunSave): void {
     this.clearWorld()
-    this.state = createGameState()
+    if (run) {
+      const initial = createGameState(run.worldLevel, run.runSeed)
+      this.state = {
+        ...initial,
+        health: Math.min(run.health, run.maxHealth),
+        maxHealth: run.maxHealth,
+        score: run.score,
+        levelStartScore: run.score,
+        battleLevel: run.battleLevel,
+        upgrades: { ...run.upgrades },
+        deaths: run.deaths,
+        pendingUpgrades: run.pendingUpgrades,
+      }
+    } else {
+      this.state = createGameState()
+    }
     this.started = true
     this.paused = false
     this.transitioning = false
     this.bossActive = false
-    this.damageTaken = 0
     this.targetX = WIDTH / 2
     this.targetY = HEIGHT - 132
     this.player.setPosition(this.targetX, this.targetY).setAlpha(1)
     this.player.setActive(true).setVisible(true)
     this.physics.world.resume()
-    this.startLevel(1)
+    if (this.state.pendingUpgrades?.length) {
+      this.restorePendingUpgrade()
+    } else {
+      this.startLevel(this.state.worldLevel)
+    }
     this.emitEvent('viral:sound', { kind: 'start' })
   }
 
@@ -173,27 +206,25 @@ export class GameScene extends Phaser.Scene {
     this.animateEnemies(time)
     this.cleanupOffscreen()
 
-    const rapidLevel = this.state.upgrades.rapid
-    const fireEvery = 390 - rapidLevel * 65
     if (time >= this.firedAt) {
       this.fireAntibodies()
-      this.firedAt = time + fireEvery
+      this.firedAt = time + getFireInterval(this.state, time)
     }
 
     if (this.bossActive) {
       this.updateBoss(time)
     } else {
-      const level = getLevel(this.state.level)
+      const levelStats = getLevelStats(this.state.worldLevel)
       if (
         !this.transitioning &&
-        this.state.cleaned < level.cleanTarget &&
+        this.state.cleaned < levelStats.cleanTarget &&
         time >= this.spawnAt
       ) {
         this.spawnEnemy()
-        this.spawnAt = time + level.spawnEvery
+        this.spawnAt = time + levelStats.spawnEvery
       }
       if (
-        this.state.cleaned >= level.cleanTarget &&
+        this.state.cleaned >= levelStats.cleanTarget &&
         this.enemies.countActive(true) === 0
       ) {
         this.completeLevel()
@@ -210,17 +241,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   chooseUpgrade(upgrade: UpgradeId): void {
+    if (!this.state.pendingUpgrades?.includes(upgrade)) return
     this.state = applyUpgrade(this.state, upgrade)
-    this.transitioning = false
-    this.physics.world.resume()
     this.emitEvent('viral:sound', { kind: 'power' })
-
-    const nextLevelId = getNextLevelId(this.state.level)
-    if (nextLevelId) this.startLevel(nextLevelId)
+    this.startLevel(this.state.worldLevel + 1, true)
   }
 
   revive(): void {
-    this.state = revivePlayer(this.state, this.time.now)
+    const restart = this.state.reviveUsed
+    this.state = restart
+      ? restartCurrentLevel(this.state)
+      : revivePlayer(this.state, this.time.now)
+    if (restart) {
+      this.clearWorld()
+      this.startLevel(this.state.worldLevel)
+    }
     this.player
       .setActive(true)
       .setVisible(true)
@@ -231,33 +266,44 @@ export class GameScene extends Phaser.Scene {
     this.transitioning = false
     this.physics.world.resume()
     this.emitHud()
-    this.emitEvent('viral:toast', { message: '能量满满，继续出发！' })
+    this.emitCheckpoint()
+    this.emitEvent('viral:toast', {
+      message: restart ? '本关重新开始，加油！' : '能量满满，继续出发！',
+    })
     this.emitEvent('viral:sound', { kind: 'power' })
   }
 
-  private startLevel(levelNumber: number): void {
+  private startLevel(levelNumber: number, advance = false): void {
+    if (advance) {
+      this.state = advanceToLevel(this.state, levelNumber)
+    }
     const level = getLevel(levelNumber)
     this.state = {
       ...this.state,
-      level: level.id,
+      worldLevel: levelNumber,
+      battleLevel: getLevelPosition(levelNumber).battleLevel,
       cleaned: 0,
+      pendingUpgrades: undefined,
+      levelStartScore: this.state.score,
     }
     this.background.setTint(level.tint)
     this.spawnAt = this.time.now + 900
     this.transitioning = false
+    this.bossActive = false
+    this.physics.world.resume()
+    this.emitCheckpoint()
     if (level.boss) {
       this.startBoss(level.boss)
       return
     }
     this.emitHud()
     this.emitEvent('viral:toast', {
-      message: `第 ${level.id} 关 · ${level.name}`,
+      message: `第 ${levelNumber} 关 · ${level.name}`,
     })
   }
 
   private spawnEnemy(): void {
-    const level = getLevel(this.state.level)
-    const type = getEnemyForLevel(level.id, Math.random())
+    const type = getEnemyForLevel(this.state.worldLevel, Math.random())
     const texture = {
       basic: 'virus-blue',
       fast: 'virus-fast',
@@ -271,6 +317,7 @@ export class GameScene extends Phaser.Scene {
       polyhedral: 'virus-polyhedral',
       wideMouth: 'virus-wide-mouth',
     }[type]
+    const enemyStats = getEnemyStats(this.state.worldLevel, type)
     const enemy = this.enemies.get(
       Phaser.Math.Between(48, WIDTH - 48),
       -70,
@@ -368,9 +415,10 @@ export class GameScene extends Phaser.Scene {
       .setDataEnabled()
     enemy.enemyType = type
     enemy.setData({
-      health: config.health,
-      points: config.points,
-      speed: level.enemySpeed * config.speed,
+      health: enemyStats.health,
+      damage: enemyStats.damage,
+      points: enemyStats.points,
+      speed: enemyStats.speed,
       originX: enemy.x,
       wave: Phaser.Math.FloatBetween(0.0015, 0.0032),
       phase: Phaser.Math.FloatBetween(0, Math.PI * 2),
@@ -407,10 +455,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private fireAntibodies(): void {
-    const spreadLevel = this.state.upgrades.spread
-    const angles = spreadLevel === 0 ? [0] : spreadLevel === 1 ? [-9, 9] : [-16, 0, 16]
-
-    for (const angle of angles) {
+    const critical =
+      Math.random() < getPlayerCombatStats(this.state).criticalChance
+    for (const shot of getBulletPattern(this.state)) {
       const bullet = this.bullets.get(
         this.player.x,
         this.player.y - 45,
@@ -426,7 +473,15 @@ export class GameScene extends Phaser.Scene {
       const body = bullet.body as Phaser.Physics.Arcade.Body
       body.enable = true
       body.setSize(14, 20)
-      this.physics.velocityFromAngle(angle - 90, 470, body.velocity)
+      bullet.setData(
+        'damage',
+        calculateBulletDamage(
+          this.state,
+          shot.damageMultiplier,
+          critical,
+        ),
+      )
+      this.physics.velocityFromAngle(shot.angle - 90, 470, body.velocity)
     }
     this.emitEvent('viral:sound', { kind: 'pop', quiet: true })
   }
@@ -440,11 +495,18 @@ export class GameScene extends Phaser.Scene {
     this.disableObject(bullet)
 
     if (enemy === this.boss) {
-      this.hitBoss(enemy)
+      this.hitBoss(
+        enemy,
+        (bullet.getData('damage') as number | undefined) ??
+          getPlayerCombatStats(this.state).damage,
+      )
       return
     }
 
-    const health = (enemy.getData('health') as number) - 1
+    const health =
+      (enemy.getData('health') as number) -
+      ((bullet.getData('damage') as number | undefined) ??
+        getPlayerCombatStats(this.state).damage)
     enemy.setData('health', health)
     if (health > 0) {
       this.tweens.add({
@@ -469,8 +531,11 @@ export class GameScene extends Phaser.Scene {
     this.emitEvent('viral:sound', { kind: 'clean' })
   }
 
-  private hitBoss(boss: Phaser.Physics.Arcade.Image): void {
-    this.bossHealth -= 1
+  private hitBoss(
+    boss: Phaser.Physics.Arcade.Image,
+    damage: number,
+  ): void {
+    this.bossHealth -= damage
     boss.setTintFill(0xffffff)
     this.time.delayedCall(60, () => boss.clearTint())
     this.cleanBurst(
@@ -501,7 +566,7 @@ export class GameScene extends Phaser.Scene {
           )
         })
       }
-      const finalBoss = getNextLevelId(this.state.level) === null
+      const finalBoss = getLevelPosition(this.state.worldLevel).stage === 10
       this.time.delayedCall(1_050, () => {
         if (finalBoss) this.finishRun()
         else this.completeLevel()
@@ -519,23 +584,30 @@ export class GameScene extends Phaser.Scene {
     const player = playerObject as Phaser.Physics.Arcade.Image
     const danger = dangerObject as Phaser.Physics.Arcade.Image
     if (danger !== this.boss) this.disableObject(danger)
-    const next = applyDamage(this.state, this.time.now)
+    const damage =
+      (danger.getData('damage') as number | undefined) ??
+      getBossStats(
+        this.state.worldLevel,
+        this.bossConfig?.type ?? 'corona',
+      ).damage
+    const next = applyDamage(this.state, damage, this.time.now)
     if (next === this.state) return
 
     this.state = next
-    this.damageTaken += 1
     this.cameras.main.shake(160, 0.008)
     this.emitHud()
     this.emitEvent('viral:sound', {
-      kind: this.state.hearts === 0 ? 'death' : 'hit',
+      kind: this.state.health === 0 ? 'death' : 'hit',
     })
 
-    if (this.state.hearts === 0) {
+    if (this.state.health === 0) {
       this.transitioning = true
       this.physics.world.pause()
       this.explodePlayer(player)
       this.time.delayedCall(PLAYER_DEATH_DELAY, () =>
-        this.emitEvent('viral:revive'),
+        this.emitEvent('viral:revive', {
+          restart: this.state.reviveUsed,
+        }),
       )
       return
     }
@@ -582,16 +654,26 @@ export class GameScene extends Phaser.Scene {
     const kind = powerup.getData('kind') as 'heart' | 'rapid' | 'shield'
     this.disableObject(powerup)
     if (kind === 'heart') {
+      this.state = healPlayer(this.state)
+    } else if (kind === 'rapid') {
       this.state = {
         ...this.state,
-        hearts: Math.min(this.state.maxHearts, this.state.hearts + 1),
+        rapidBoostUntil: this.time.now + 6_000,
       }
     } else {
-      this.state = applyUpgrade(this.state, kind)
+      this.state = {
+        ...this.state,
+        damageImmunityCharges: 1,
+      }
     }
     this.emitHud()
     this.emitEvent('viral:toast', {
-      message: kind === 'heart' ? '爱心能量 +1' : '抗体能量升级！',
+      message:
+        kind === 'heart'
+          ? '恢复 20% 生命'
+          : kind === 'rapid'
+            ? '短时攻速提升！'
+            : '获得一次伤害免疫！',
     })
     this.emitEvent('viral:sound', { kind: 'power' })
   }
@@ -599,13 +681,21 @@ export class GameScene extends Phaser.Scene {
   private completeLevel(): void {
     this.transitioning = true
     this.physics.world.pause()
-    const level = getLevel(this.state.level)
+    const level = getLevel(this.state.worldLevel)
+    const options =
+      this.state.pendingUpgrades ??
+      chooseUpgradeOptions(
+        this.state.upgrades,
+        this.state.runSeed + this.state.worldLevel,
+      )
+    this.state = { ...this.state, pendingUpgrades: options }
+    this.emitCheckpoint()
     this.emitEvent('viral:levelComplete', {
-      level: level.id,
+      level: this.state.worldLevel,
       fact: level.fact,
       bossNext:
-        getNextLevelId(level.id) !== null &&
-        getLevel(getNextLevelId(level.id) ?? level.id).mode === 'boss',
+        getLevel(this.state.worldLevel + 1).mode === 'boss',
+      options,
     })
     this.emitEvent('viral:sound', { kind: 'level' })
   }
@@ -616,13 +706,14 @@ export class GameScene extends Phaser.Scene {
     this.enemies.clear(true, true)
     this.enemyBullets.clear(true, true)
     this.bossConfig = config
-    this.bossHealth = config.health
-    this.bossMaxHealth = config.health
+    const bossStats = getBossStats(this.state.worldLevel, config.type)
+    this.bossHealth = bossStats.health
+    this.bossMaxHealth = bossStats.health
     this.boss = this.physics.add
       .image(WIDTH / 2, 170, config.texture)
       .setDisplaySize(config.displaySize[0], config.displaySize[1])
       .setDepth(3)
-      .setData('boss', true)
+      .setData({ boss: true, damage: bossStats.damage })
     const body = this.boss.body as Phaser.Physics.Arcade.Body
     this.setCircularBody(
       body,
@@ -633,7 +724,7 @@ export class GameScene extends Phaser.Scene {
     body.setImmovable(true)
     this.enemies.add(this.boss)
     this.emitEvent('viral:toast', {
-      message: `第 ${this.state.level} 关 BOSS · ${config.name}`,
+      message: `第 ${this.state.worldLevel} 关 BOSS · ${config.name}`,
     })
     this.emitHud()
   }
@@ -643,6 +734,10 @@ export class GameScene extends Phaser.Scene {
     this.boss.x = WIDTH / 2 + Math.sin(time * 0.0012) * 115
     if (time < this.bossFiredAt) return
 
+    const bossStats = getBossStats(
+      this.state.worldLevel,
+      this.bossConfig?.type ?? 'corona',
+    )
     const healthRatio = this.bossHealth / this.bossMaxHealth
     const shotCount = healthRatio > 0.66 ? 1 : healthRatio > 0.33 ? 3 : 5
     const startAngle = shotCount === 1 ? 90 : 72
@@ -654,38 +749,50 @@ export class GameScene extends Phaser.Scene {
         'germ-drop',
       ) as Phaser.Physics.Arcade.Image | null
       if (!shot) continue
-      shot.setActive(true).setVisible(true).setDepth(4)
+      shot
+        .setActive(true)
+        .setVisible(true)
+        .setDepth(4)
+        .setData('damage', bossStats.damage)
       const shotBody = shot.body as Phaser.Physics.Arcade.Body
       shotBody.enable = true
       this.physics.velocityFromAngle(
         startAngle + step * index,
-        135 + (1 - healthRatio) * 55,
+        Math.min(
+          bossStats.projectileSpeedMax,
+          bossStats.projectileSpeed + (1 - healthRatio) * 25,
+        ),
         shotBody.velocity,
       )
     }
-    this.bossFiredAt = time + 1_180 - (1 - healthRatio) * 380
+    this.bossFiredAt =
+      time + Math.max(bossStats.fireEveryMin, 1_180 - (1 - healthRatio) * 530)
     this.emitEvent('viral:sound', { kind: 'boss', quiet: true })
   }
 
   private finishRun(): void {
     this.transitioning = true
     this.physics.world.pause()
-    const stars = this.damageTaken <= 2 ? 3 : this.damageTaken <= 5 ? 2 : 1
+    const stars = getChapterStars(this.state.deaths)
     this.emitHud()
     this.emitEvent('viral:victory', {
       score: this.state.score,
       stars,
       cleaned: this.state.cleaned,
+      chapter: getLevelPosition(this.state.worldLevel).chapter,
+      completedLevel: this.state.worldLevel,
     })
   }
 
   private emitHud(): void {
-    const level = getLevel(this.state.level)
+    const level = getLevel(this.state.worldLevel)
+    const levelStats = getLevelStats(this.state.worldLevel)
     const detail: HudDetail = {
-      hearts: this.state.hearts,
-      maxHearts: this.state.maxHearts,
+      health: this.state.health,
+      maxHealth: this.state.maxHealth,
       score: this.state.score,
-      level: this.state.level,
+      level: this.state.worldLevel,
+      battleLevel: this.state.battleLevel,
       levelName: this.bossActive
         ? (this.bossConfig?.name ?? level.name)
         : level.name,
@@ -698,15 +805,48 @@ export class GameScene extends Phaser.Scene {
         : level.mode === 'boss'
           ? 1
           : Phaser.Math.Clamp(
-              this.state.cleaned / level.cleanTarget,
+              this.state.cleaned / levelStats.cleanTarget,
               0,
               1,
             ),
-      weaponLevel:
-        1 + this.state.upgrades.rapid + this.state.upgrades.spread,
+      damage: getPlayerCombatStats(this.state).damage,
       boss: this.bossActive,
     }
     this.emitEvent('viral:hud', detail)
+  }
+
+  private restorePendingUpgrade(): void {
+    const level = getLevel(this.state.worldLevel)
+    this.background.setTint(level.tint)
+    this.transitioning = true
+    this.physics.world.pause()
+    this.emitHud()
+    this.emitEvent('viral:levelComplete', {
+      level: this.state.worldLevel,
+      fact: level.fact,
+      bossNext: getLevel(this.state.worldLevel + 1).mode === 'boss',
+      options: this.state.pendingUpgrades,
+    })
+  }
+
+  private emitCheckpoint(): void {
+    const detail: RunSave = {
+      chapter: getLevelPosition(this.state.worldLevel).chapter,
+      worldLevel: this.state.worldLevel,
+      health: this.state.health,
+      maxHealth: this.state.maxHealth,
+      battleLevel: this.state.battleLevel,
+      upgrades: { ...this.state.upgrades },
+      score: this.state.pendingUpgrades
+        ? this.state.score
+        : this.state.levelStartScore,
+      deaths: this.state.deaths,
+      runSeed: this.state.runSeed,
+      ...(this.state.pendingUpgrades
+        ? { pendingUpgrades: [...this.state.pendingUpgrades] }
+        : {}),
+    }
+    this.emitEvent('viral:checkpoint', detail)
   }
 
   private moveTarget(pointer: Phaser.Input.Pointer): void {
@@ -879,10 +1019,12 @@ export class GameScene extends Phaser.Scene {
         .setAlpha(1)
         .setDataEnabled()
       fragment.enemyType = 'basic'
+      const stats = getEnemyStats(this.state.worldLevel, 'basic')
       fragment.setData({
-        health: 1,
-        points: 6,
-        speed: 148,
+        health: stats.health,
+        damage: stats.damage,
+        points: Math.round(stats.points * 0.6),
+        speed: stats.speed,
         originX: fragment.x,
         wave: 0.004,
         phase: direction > 0 ? 0 : Math.PI,
@@ -891,7 +1033,7 @@ export class GameScene extends Phaser.Scene {
       const body = fragment.body as Phaser.Physics.Arcade.Body
       body.enable = true
       this.setCircularBody(body, HITBOXES.splitter)
-      body.setVelocityY(148)
+      body.setVelocityY(stats.speed)
     }
   }
 

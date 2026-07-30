@@ -6,6 +6,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: [
+        'src/game/balance.ts',
         'src/game/model.ts',
         'src/game/content.ts',
         'src/game/collision.ts',

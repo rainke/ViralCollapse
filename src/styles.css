@@ -315,6 +315,35 @@ button:focus-visible {
   letter-spacing: 1px;
 }
 
+.health-pill {
+  display: grid;
+  min-width: 96px;
+  gap: 4px;
+  letter-spacing: 0;
+}
+
+.health-track {
+  width: 76px;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 20%);
+}
+
+.health-fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6cf5ff, #7d8cff);
+  transition: width 180ms ease;
+}
+
+.health-pill strong {
+  font-size: 11px;
+  line-height: 1;
+}
+
 .stage-chip {
   min-width: 122px;
   padding: 6px 14px;

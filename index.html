@@ -47,6 +47,30 @@
       type="audio/wav"
       href="/assets/generated/speech/fact-6.wav"
     />
+    <link
+      rel="preload"
+      as="audio"
+      type="audio/wav"
+      href="/assets/generated/speech/fact-7.wav"
+    />
+    <link
+      rel="preload"
+      as="audio"
+      type="audio/wav"
+      href="/assets/generated/speech/fact-8.wav"
+    />
+    <link
+      rel="preload"
+      as="audio"
+      type="audio/wav"
+      href="/assets/generated/speech/fact-9.wav"
+    />
+    <link
+      rel="preload"
+      as="audio"
+      type="audio/wav"
+      href="/assets/generated/speech/fact-10.wav"
+    />
     <title>病毒大扫除 · 免疫小卫士</title>
   </head>
   <body>
@@ -56,7 +80,12 @@
 
         <div id="hud" class="hud is-hidden" aria-live="polite">
           <div class="hud-top">
-            <div id="hearts" class="glass-pill" aria-label="生命值">💙💙💙</div>
+            <div id="hearts" class="glass-pill health-pill" aria-label="生命值">
+              <span class="health-track">
+                <span id="health-fill" class="health-fill"></span>
+              </span>
+              <strong id="health-value">100/100</strong>
+            </div>
             <div class="stage-chip">
               <span id="stage-number">第 1 关</span>
               <strong id="stage-name">鼻腔花园</strong>

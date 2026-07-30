@@ -38,8 +38,9 @@ describe('level content', () => {
     }
   })
 
-  it('falls back to the first level for invalid stage numbers', () => {
-    expect(getLevel(99)).toBe(LEVELS[0])
+  it('reuses chapter content templates for later world levels', () => {
+    expect(getLevel(99)).toBe(LEVELS[8])
+    expect(getLevel(Number.NaN)).toBe(LEVELS[0])
   })
 
   it('advances through all ten stages and stops after the chapter boss', () => {
@@ -88,6 +89,8 @@ describe('level content', () => {
       getEnemyForLevel(4, 0.45),
       getEnemyForLevel(4, 0.82),
       getEnemyForLevel(4, 0.95),
+      getEnemyForLevel(9, 0.35),
+      getEnemyForLevel(9, 0.48),
       getEnemyForLevel(9, 0.85),
       getEnemyForLevel(9, 0.95),
     ])
@@ -120,9 +123,9 @@ describe('level content', () => {
     [2, 0.88, 'pox'],
     [4, 0.1, 'basic'],
     [4, 0.22, 'fast'],
-    [4, 0.4, 'influenza'],
-    [4, 0.54, 'wobbly'],
-    [4, 0.66, 'splitter'],
+    [4, 0.4, 'wobbly'],
+    [4, 0.54, 'splitter'],
+    [4, 0.66, 'influenza'],
     [4, 0.78, 'adenovirus'],
     [4, 0.9, 'polyhedral'],
     [6, 0.01, 'basic'],
