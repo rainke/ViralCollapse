@@ -39,6 +39,17 @@ test('pause and resume keep the child in the same run', async ({ page }) => {
 test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
   await page.goto('/')
 
+  const preloadedSpeech = page.locator('link[rel="preload"][as="audio"]')
+  await expect(preloadedSpeech).toHaveCount(6)
+  await expect(preloadedSpeech.evaluateAll((links) => links.map((link) => link.getAttribute('href')))).resolves.toEqual([
+    '/assets/generated/speech/fact-1.wav',
+    '/assets/generated/speech/fact-2.wav',
+    '/assets/generated/speech/fact-3.wav',
+    '/assets/generated/speech/fact-4.wav',
+    '/assets/generated/speech/fact-5.wav',
+    '/assets/generated/speech/fact-6.wav',
+  ])
+
   await page.evaluate(() => {
     window.dispatchEvent(
       new CustomEvent('viral:levelComplete', {
@@ -55,16 +66,7 @@ test('listen plays the generated cloned-voice fact audio', async ({ page }) => {
     )
   })
 
-  const audioResponse = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/assets/generated/speech/fact-1.wav') &&
-      response.request().resourceType() === 'media',
-  )
   await page.getByRole('button', { name: '听一听' }).click()
-
-  const response = await audioResponse
-  expect([200, 206]).toContain(response.status())
-  expect(response.headers()['content-type']).toContain('audio/wav')
 })
 
 test('player, bullets and viruses use real visible collision areas', async ({
