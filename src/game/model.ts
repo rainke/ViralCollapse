@@ -270,11 +270,10 @@ export function getSplitProjectiles(
   const count = state.upgrades.split === 0
     ? 0
     : state.upgrades.split + 1
-  const tints = [0xff78d1, 0xffd166, 0x9b8cff, 0x7dffa1]
-  return Array.from({ length: count }, (_, index) => ({
+  return Array.from({ length: count }, () => ({
     angle: Math.round(random() * 360) % 360,
     damage: Math.max(1, Math.round(parentDamage * 0.5)),
-    tint: tints[index],
+    tint: 0xff9f43,
   }))
 }
 

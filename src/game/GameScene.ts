@@ -487,6 +487,7 @@ export class GameScene extends Phaser.Scene {
         .setTexture('antibody')
         .setDepth(4)
         .setScale(1)
+        .setAngle(shot.angle)
         .setAlpha(1)
         .clearTint()
       const body = bullet.body as Phaser.Physics.Arcade.Body
@@ -1142,6 +1143,7 @@ export class GameScene extends Phaser.Scene {
         .setTexture('antibody')
         .setDepth(4)
         .setScale(0.82)
+        .setAngle(split.angle + 90)
         .setAlpha(1)
         .setTint(split.tint)
         .setData({
