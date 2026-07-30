@@ -266,14 +266,13 @@ export function getSplitProjectiles(
   state: GameState,
   parentDamage: number,
   random: () => number = Math.random,
-): Array<{ angle: number; damage: number; tint: number }> {
+): Array<{ angle: number; damage: number }> {
   const count = state.upgrades.split === 0
     ? 0
     : state.upgrades.split + 1
   return Array.from({ length: count }, () => ({
     angle: Math.round(random() * 360) % 360,
     damage: Math.max(1, Math.round(parentDamage * 0.5)),
-    tint: 0xff9f43,
   }))
 }
 

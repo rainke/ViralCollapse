@@ -1132,7 +1132,7 @@ export class GameScene extends Phaser.Scene {
     hitEnemy: EnemySprite,
   ): void {
     for (const split of getSplitProjectiles(this.state, parentDamage)) {
-      const child = this.bullets.get(x, y, 'antibody') as
+      const child = this.bullets.get(x, y, 'antibody-split') as
         | Phaser.Physics.Arcade.Image
         | null
       if (!child) continue
@@ -1140,12 +1140,12 @@ export class GameScene extends Phaser.Scene {
       child
         .setActive(true)
         .setVisible(true)
-        .setTexture('antibody')
+        .setTexture('antibody-split')
         .setDepth(4)
         .setScale(0.82)
         .setAngle(split.angle + 90)
         .setAlpha(1)
-        .setTint(split.tint)
+        .clearTint()
         .setData({
           damage: split.damage,
           remainingPierces: 0,
@@ -1178,6 +1178,12 @@ export class GameScene extends Phaser.Scene {
     graphics.fillStyle(0xffffff, 0.8)
     graphics.fillCircle(10, 5, 3)
     graphics.generateTexture('antibody', 20, 26)
+    graphics.clear()
+    graphics.fillStyle(0xff9f43, 1)
+    graphics.fillRoundedRect(5, 0, 10, 24, 5)
+    graphics.fillStyle(0xffffff, 0.8)
+    graphics.fillCircle(10, 5, 3)
+    graphics.generateTexture('antibody-split', 20, 26)
     graphics.clear()
     graphics.fillStyle(0xa26eff, 1)
     graphics.fillCircle(12, 12, 10)
