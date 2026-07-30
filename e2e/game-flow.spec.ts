@@ -291,12 +291,12 @@ test('player death explodes before the revive dialog transitions in', async ({
     }
   })
 
-  expect(deathState).toEqual({
+  expect(deathState).toMatchObject({
     reviveHidden: true,
     explosionVisible: true,
     deathSoundVoices: 3,
-    deathSoundSpan: 0.32,
   })
+  expect(deathState.deathSoundSpan).toBeCloseTo(0.32)
 
   const reviveHeading = page.getByRole('heading', {
     name: '小卫士充好电啦',

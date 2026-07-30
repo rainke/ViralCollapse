@@ -31,13 +31,16 @@ class SoundSynth {
     if (this.muted) return
     this.unlock()
     if (!this.context) return
+    if (kind === 'death') {
+      this.playDeath()
+      return
+    }
 
     const presets: Record<string, [number, number, number]> = {
       start: [440, 700, 0.24],
       pop: [680, 860, 0.04],
       clean: [520, 960, 0.1],
       hit: [180, 95, 0.18],
-      death: [220, 60, 0.48],
       power: [480, 1_020, 0.28],
       level: [440, 880, 0.38],
       boss: [160, 120, 0.08],
@@ -63,6 +66,34 @@ class SoundSynth {
     oscillator.connect(gain).connect(this.context.destination)
     oscillator.start()
     oscillator.stop(this.context.currentTime + duration)
+  }
+
+  private playDeath(): void {
+    if (!this.context) return
+    const now = this.context.currentTime
+    const voices: Array<
+      [number, number, number, number, number, OscillatorType]
+    > = [
+      [260, 70, 0.88, 0, 0.05, 'triangle'],
+      [110, 42, 0.7, 0.12, 0.026, 'sawtooth'],
+      [740, 180, 0.46, 0.32, 0.022, 'sine'],
+    ]
+
+    for (const [from, to, duration, delay, volume, type] of voices) {
+      const start = now + delay
+      const stop = start + duration
+      const oscillator = this.context.createOscillator()
+      const gain = this.context.createGain()
+      oscillator.type = type
+      oscillator.frequency.setValueAtTime(from, start)
+      oscillator.frequency.exponentialRampToValueAtTime(to, stop)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(volume, start + 0.018)
+      gain.gain.exponentialRampToValueAtTime(0.0001, stop)
+      oscillator.connect(gain).connect(this.context.destination)
+      oscillator.start(start)
+      oscillator.stop(stop)
+    }
   }
 
   playSpeech(asset: string): void {
