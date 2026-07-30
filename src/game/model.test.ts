@@ -18,6 +18,7 @@ import {
   recordVirusCleaned,
   revivePlayer,
   serializeSave,
+  shouldDropSkillFragment,
   type UpgradeId,
 } from './model'
 
@@ -72,6 +73,13 @@ describe('game state', () => {
 
     expect(state.cleaned).toBe(1)
     expect(state.score).toBe(25)
+  })
+
+  it('drops a skill fragment for exactly the lowest 10% of rolls', () => {
+    expect(shouldDropSkillFragment(0)).toBe(true)
+    expect(shouldDropSkillFragment(0.099_999)).toBe(true)
+    expect(shouldDropSkillFragment(0.1)).toBe(false)
+    expect(shouldDropSkillFragment(0.999_999)).toBe(false)
   })
 
   it('offers one in-place revive at 60% health, then restarts the checkpoint', () => {
