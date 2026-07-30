@@ -513,7 +513,7 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
       active: boolean
       angle: number
       body: { velocity: { x: number; y: number } }
-      tintTopLeft: number
+      texture: { key: string }
       getData: (key: string) => unknown
     }
     const scene = game.scene.getScene('game') as {
@@ -527,6 +527,13 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
       enemies: {
         clear: (removeFromScene: boolean, destroyChild: boolean) => void
         getChildren: () => unknown[]
+      }
+      textures: {
+        getPixel: (
+          x: number,
+          y: number,
+          key: string,
+        ) => { red: number; green: number; blue: number; alpha: number } | null
       }
       fireAntibodies: () => void
       spawnEnemy: () => void
@@ -560,6 +567,13 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     )
     const angleDelta = (left: number, right: number) =>
       Math.abs(((left - right + 180) % 360 + 360) % 360 - 180)
+    const childTextureKeys = Array.from(
+      new Set(childrenAfterSecond.map((bullet) => bullet.texture.key)),
+    )
+    const childTextureKey = childTextureKeys[0]
+    if (!childTextureKey) throw new Error('Missing split antibody texture')
+    const childPixel = scene.textures.getPixel(10, 13, childTextureKey)
+    if (!childPixel) throw new Error('Missing split antibody center pixel')
 
     return {
       parentAfterFirst,
@@ -567,9 +581,13 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
       firstChildCount: firstChildren.length,
       duplicateChildCount,
       secondChildCount: childrenAfterSecond.length,
-      childColors: Array.from(new Set(
-        childrenAfterSecond.map((bullet) => bullet.tintTopLeft),
-      )),
+      childTextureKeys,
+      childCenterColor: [
+        childPixel.red,
+        childPixel.green,
+        childPixel.blue,
+        childPixel.alpha,
+      ],
       childrenFollowMovement: childrenAfterSecond.every((bullet) => {
         const movementAngle =
           Math.atan2(bullet.body.velocity.y, bullet.body.velocity.x) *
@@ -586,7 +604,8 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     firstChildCount: 3,
     duplicateChildCount: 3,
     secondChildCount: 6,
-    childColors: [0xff9f43],
+    childTextureKeys: ['antibody-split'],
+    childCenterColor: [255, 159, 67, 255],
     childrenFollowMovement: true,
   })
 })
