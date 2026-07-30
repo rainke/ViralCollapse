@@ -367,6 +367,79 @@ test('HUD shows numeric health and a seeded three-choice upgrade', async ({
   )
 })
 
+test('split and pierce combine on every antibody hit', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+
+  const result = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    type Projectile = {
+      active: boolean
+      tintTopLeft: number
+      getData: (key: string) => unknown
+    }
+    const scene = game.scene.getScene('game') as {
+      state: {
+        upgrades: Record<string, number>
+      }
+      bullets: {
+        getChildren: () => Projectile[]
+      }
+      enemies: {
+        getChildren: () => unknown[]
+      }
+      fireAntibodies: () => void
+      spawnEnemy: () => void
+      onBulletHitsEnemy: (bullet: unknown, enemy: unknown) => void
+    }
+    scene.state.upgrades.split = 2
+    scene.state.upgrades.pierce = 1
+    scene.fireAntibodies()
+    const parent = scene.bullets.getChildren().find(
+      (bullet) => bullet.active,
+    )
+    if (!parent) throw new Error('Missing fired antibody')
+
+    scene.spawnEnemy()
+    scene.spawnEnemy()
+    const [firstEnemy, secondEnemy] = scene.enemies.getChildren()
+    scene.onBulletHitsEnemy(parent, firstEnemy)
+    const firstChildren = scene.bullets.getChildren().filter(
+      (bullet) => bullet.active && bullet.getData('splitChild') === true,
+    )
+    const parentAfterFirst = parent.active
+    scene.onBulletHitsEnemy(parent, secondEnemy)
+    const childrenAfterSecond = scene.bullets.getChildren().filter(
+      (bullet) => bullet.active && bullet.getData('splitChild') === true,
+    )
+
+    return {
+      parentAfterFirst,
+      parentAfterSecond: parent.active,
+      firstChildCount: firstChildren.length,
+      secondChildCount: childrenAfterSecond.length,
+      childColors: new Set(
+        childrenAfterSecond.map((bullet) => bullet.tintTopLeft),
+      ).size,
+    }
+  })
+
+  expect(result).toEqual({
+    parentAfterFirst: true,
+    parentAfterSecond: false,
+    firstChildCount: 3,
+    secondChildCount: 6,
+    childColors: 3,
+  })
+})
+
 test('saved chapter checkpoint continues from its world level', async ({
   page,
 }) => {

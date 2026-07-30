@@ -11,6 +11,8 @@ import {
   getChapterStars,
   getFireInterval,
   getPlayerCombatStats,
+  getProjectilePierceCount,
+  getSplitProjectiles,
   healPlayer,
   restartCurrentLevel,
   recordVirusCleaned,
@@ -104,7 +106,7 @@ describe('game state', () => {
 })
 
 describe('upgrades', () => {
-  it('applies all six routes with safe caps', () => {
+  it('applies all eight routes with safe caps', () => {
     let state = createGameState()
 
     for (let index = 0; index < 8; index += 1) {
@@ -114,6 +116,8 @@ describe('upgrades', () => {
       state = applyUpgrade(state, 'health')
       state = applyUpgrade(state, 'critical')
       state = applyUpgrade(state, 'guard')
+      state = applyUpgrade(state, 'split')
+      state = applyUpgrade(state, 'pierce')
     }
 
     expect(state.upgrades).toEqual({
@@ -123,6 +127,8 @@ describe('upgrades', () => {
       health: 4,
       critical: 4,
       guard: 4,
+      split: 3,
+      pierce: 3,
     })
   })
 
@@ -163,6 +169,45 @@ describe('upgrades', () => {
       { angle: 16, damageMultiplier: 0.6 },
     ])
     expect(calculateBulletDamage(state, 0.001, false)).toBe(1)
+  })
+
+  it('creates more random-direction split antibodies at each level', () => {
+    const randomValues = [0, 0.25, 0.5, 0.75]
+    let randomIndex = 0
+    const random = () => randomValues[randomIndex++]
+    const state = {
+      ...createGameState(),
+      upgrades: { ...createGameState().upgrades, split: 3 },
+    }
+
+    expect(getSplitProjectiles(state, 11, random)).toEqual([
+      { angle: 0, damage: 6, tint: 0xff78d1 },
+      { angle: 90, damage: 6, tint: 0xffd166 },
+      { angle: 180, damage: 6, tint: 0x9b8cff },
+      { angle: 270, damage: 6, tint: 0x7dffa1 },
+    ])
+    expect(
+      getSplitProjectiles(
+        {
+          ...state,
+          upgrades: { ...state.upgrades, split: 0 },
+        },
+        11,
+        random,
+      ),
+    ).toEqual([])
+  })
+
+  it('increases additional virus penetrations with pierce level', () => {
+    const state = createGameState()
+
+    expect(getProjectilePierceCount(state)).toBe(0)
+    expect(
+      getProjectilePierceCount({
+        ...state,
+        upgrades: { ...state.upgrades, pierce: 3 },
+      }),
+    ).toBe(3)
   })
 
   it('raises max health and heals 20% when battle level advances', () => {
