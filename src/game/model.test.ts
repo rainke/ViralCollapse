@@ -189,10 +189,10 @@ describe('upgrades', () => {
     }
 
     expect(getSplitProjectiles(state, 11, random)).toEqual([
-      { angle: 0, damage: 6, tint: 0xff78d1 },
-      { angle: 90, damage: 6, tint: 0xffd166 },
-      { angle: 180, damage: 6, tint: 0x9b8cff },
-      { angle: 270, damage: 6, tint: 0x7dffa1 },
+      { angle: 0, damage: 6, tint: 0xff9f43 },
+      { angle: 90, damage: 6, tint: 0xff9f43 },
+      { angle: 180, damage: 6, tint: 0xff9f43 },
+      { angle: 270, damage: 6, tint: 0xff9f43 },
     ])
     expect(
       getSplitProjectiles(

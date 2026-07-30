@@ -511,6 +511,8 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     if (!game) throw new Error('Missing development game handle')
     type Projectile = {
       active: boolean
+      angle: number
+      body: { velocity: { x: number; y: number } }
       tintTopLeft: number
       getData: (key: string) => unknown
     }
@@ -556,6 +558,8 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     const childrenAfterSecond = scene.bullets.getChildren().filter(
       (bullet) => bullet.active && bullet.getData('splitChild') === true,
     )
+    const angleDelta = (left: number, right: number) =>
+      Math.abs(((left - right + 180) % 360 + 360) % 360 - 180)
 
     return {
       parentAfterFirst,
@@ -563,9 +567,16 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
       firstChildCount: firstChildren.length,
       duplicateChildCount,
       secondChildCount: childrenAfterSecond.length,
-      childColors: new Set(
+      childColors: Array.from(new Set(
         childrenAfterSecond.map((bullet) => bullet.tintTopLeft),
-      ).size,
+      )),
+      childrenFollowMovement: childrenAfterSecond.every((bullet) => {
+        const movementAngle =
+          Math.atan2(bullet.body.velocity.y, bullet.body.velocity.x) *
+          (180 / Math.PI)
+        const visualForwardAngle = bullet.angle - 90
+        return angleDelta(visualForwardAngle, movementAngle) < 0.01
+      }),
     }
   })
 
@@ -575,7 +586,8 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     firstChildCount: 3,
     duplicateChildCount: 3,
     secondChildCount: 6,
-    childColors: 3,
+    childColors: [0xff9f43],
+    childrenFollowMovement: true,
   })
 })
 
