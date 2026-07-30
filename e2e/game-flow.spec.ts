@@ -496,6 +496,50 @@ test('a killed virus can drop a skill fragment that upgrades the current fight',
   })
 })
 
+test('skill fragments do not stack while one is still on screen', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+
+  const activeFragments = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    type GameObject = {
+      active: boolean
+      getData: (key: string) => unknown
+    }
+    const scene = game.scene.getScene('game') as {
+      powerups: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => GameObject[]
+      }
+      maybeDropSkillFragment: (x: number, y: number) => void
+    }
+
+    scene.powerups.clear(true, true)
+    const originalRandom = Math.random
+    Math.random = () => 0.05
+    scene.maybeDropSkillFragment(120, 240)
+    scene.maybeDropSkillFragment(270, 240)
+    Math.random = originalRandom
+
+    return scene.powerups
+      .getChildren()
+      .filter(
+        (item) => item.active && item.getData('kind') === 'skill',
+      ).length
+  })
+
+  expect(activeFragments).toBe(1)
+})
+
 test('split and pierce combine on every antibody hit', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: '开始第一章' }).click()
