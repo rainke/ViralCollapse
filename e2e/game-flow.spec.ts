@@ -231,10 +231,26 @@ test('book-inspired viruses use distinct silhouettes and collision areas', async
 test('player death explodes before the revive dialog transitions in', async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    const oscillatorStarts: number[] = []
+    Object.assign(window, { __viralOscillatorStarts: oscillatorStarts })
+    const originalStart = OscillatorNode.prototype.start
+    OscillatorNode.prototype.start = function (when = 0): void {
+      oscillatorStarts.push(when)
+      originalStart.call(this, when)
+    }
+  })
   await page.goto('/')
   await page.getByRole('button', { name: '开始净化' }).click()
+  await page.waitForFunction(() => '__viralGame' in window)
 
   const deathState = await page.evaluate(() => {
+    const oscillatorStarts = (
+      window as Window & { __viralOscillatorStarts?: number[] }
+    ).__viralOscillatorStarts
+    if (!oscillatorStarts) throw new Error('Missing oscillator tracking')
+    oscillatorStarts.length = 0
+
     const game = (
       window as Window & {
         __viralGame?: {
@@ -269,12 +285,17 @@ test('player death explodes before the revive dialog transitions in', async ({
       explosionVisible: Boolean(
         scene.children.getByName('player-death-effect'),
       ),
+      deathSoundVoices: oscillatorStarts.length,
+      deathSoundSpan:
+        Math.max(...oscillatorStarts) - Math.min(...oscillatorStarts),
     }
   })
 
   expect(deathState).toEqual({
     reviveHidden: true,
     explosionVisible: true,
+    deathSoundVoices: 3,
+    deathSoundSpan: 0.32,
   })
 
   const reviveHeading = page.getByRole('heading', {
