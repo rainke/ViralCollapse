@@ -50,9 +50,7 @@ class SoundSynth {
     const oscillator = this.context.createOscillator()
     const gain = this.context.createGain()
     oscillator.type =
-      kind === 'hit' || kind === 'death' || kind === 'boss'
-        ? 'triangle'
-        : 'sine'
+      kind === 'hit' || kind === 'boss' ? 'triangle' : 'sine'
     oscillator.frequency.setValueAtTime(from, this.context.currentTime)
     oscillator.frequency.exponentialRampToValueAtTime(
       Math.max(40, to),
