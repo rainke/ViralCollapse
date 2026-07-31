@@ -828,6 +828,53 @@ test('saved chapter checkpoint continues from its world level', async ({
   ])
 })
 
+test('saved progress can be restarted from the first level', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'viral-collapse-save',
+      JSON.stringify({
+        version: 2,
+        muted: false,
+        highestCompletedLevel: 6,
+        chapters: {},
+        run: {
+          chapter: 1,
+          worldLevel: 7,
+          health: 80,
+          maxHealth: 130,
+          battleLevel: 7,
+          upgrades: {
+            damage: 1,
+            rapid: 1,
+            spread: 0,
+            health: 1,
+            critical: 0,
+            guard: 0,
+          },
+          score: 300,
+          deaths: 1,
+          runSeed: 77,
+        },
+      }),
+    )
+  })
+  await page.goto('/')
+
+  await page.getByRole('button', { name: '从第 1 关开始' }).click()
+  await expect(page.locator('#stage-number')).toHaveText('第 1 关')
+  await expect(page.locator('#health-value')).toHaveText('100/100')
+  await expect(page.locator('#score')).toHaveText('0')
+  await expect(page.locator('#power-label')).toContainText('战斗 Lv.1')
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = localStorage.getItem('viral-collapse-save')
+        return stored ? JSON.parse(stored).run.worldLevel : undefined
+      }),
+    )
+    .toBe(1)
+})
+
 test('one free revive is followed by a full-health level restart', async ({
   page,
 }) => {
