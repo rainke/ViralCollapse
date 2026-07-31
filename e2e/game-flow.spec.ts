@@ -28,7 +28,7 @@ test('microphone permission blur keeps the speech task open', async ({ page }) =
 
   await page.getByRole('button', { name: '开始离线语音' }).click()
 
-  await expect(page.getByRole('status')).toHaveText('正在听…')
+  await expect(page.locator('.challenge-status')).toHaveText('正在听…')
   await expect(page.getByRole('heading', { name: '读出这个汉字' })).toBeVisible()
   await expect(page.getByRole('button', { name: '改做选择题' })).toBeVisible()
 })
