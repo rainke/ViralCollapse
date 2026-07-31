@@ -56,30 +56,40 @@ test('permission denial offers a required fallback task', async ({ page }) => {
   await expect(page.locator('.quiz-option')).toHaveCount(3)
 })
 
-test('choice questions speak aloud and label answers for pre-readers', async ({
+test('choice questions play generated audio and label answers for pre-readers', async ({
   page,
 }) => {
   await page.addInitScript(() => {
-    const spoken: string[] = []
-    class TestSpeechSynthesisUtterance {
-      lang = ''
-      pitch = 1
-      rate = 1
+    const played: string[] = []
+    const synthesized: string[] = []
+    class TestAudio extends EventTarget {
+      constructor(readonly src: string) {
+        super()
+      }
 
-      constructor(readonly text: string) {}
+      pause() {}
+
+      play() {
+        played.push(this.src)
+        queueMicrotask(() => this.dispatchEvent(new Event('ended')))
+        return Promise.resolve()
+      }
     }
-    Object.defineProperty(window, 'SpeechSynthesisUtterance', {
+    Object.defineProperty(window, 'Audio', {
       configurable: true,
-      value: TestSpeechSynthesisUtterance,
+      value: TestAudio,
     })
     Object.defineProperty(window, 'speechSynthesis', {
       configurable: true,
       value: {
         cancel: () => {},
-        speak: (utterance: { text: string }) => spoken.push(utterance.text),
+        speak: (utterance: { text: string }) => synthesized.push(utterance.text),
       },
     })
-    Object.assign(window, { __spokenQuizText: spoken })
+    Object.assign(window, {
+      __playedQuizAudio: played,
+      __synthesizedQuizText: synthesized,
+    })
   })
   await page.goto('/')
   await page.evaluate(() => {
@@ -93,17 +103,30 @@ test('choice questions speak aloud and label answers for pre-readers', async ({
 
   const options = page.locator('.quiz-option')
   await expect(options).toHaveText([/^A/, /^B/, /^C/])
-  const question = await page.locator('#modal-body').textContent()
-  const optionLabels = await options.evaluateAll((buttons) =>
-    buttons.map((item) => item.textContent?.slice(1).trim() ?? ''),
+  const optionIds = await options.evaluateAll((buttons) =>
+    buttons.map((item) => (item as HTMLElement).dataset.optionId),
   )
-  const firstSpeech = await page.evaluate(() =>
-    (window as Window & { __spokenQuizText: string[] }).__spokenQuizText[0],
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.length,
+  )).toBe(7)
+  const played = await page.evaluate(() =>
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio,
   )
-  expect(firstSpeech).toContain(question)
-  expect(firstSpeech).toContain(`A，${optionLabels[0]}`)
-  expect(firstSpeech).toContain(`B，${optionLabels[1]}`)
-  expect(firstSpeech).toContain(`C，${optionLabels[2]}`)
+  const questionId = played[0].match(/question-(.+)\.wav$/)?.[1]
+  expect(questionId).toBeTruthy()
+  expect(played).toEqual([
+    `/assets/generated/speech/quiz/question-${questionId}.wav`,
+    '/assets/generated/speech/quiz/marker-a.wav',
+    `/assets/generated/speech/quiz/option-${questionId}-${optionIds[0]}.wav`,
+    '/assets/generated/speech/quiz/marker-b.wav',
+    `/assets/generated/speech/quiz/option-${questionId}-${optionIds[1]}.wav`,
+    '/assets/generated/speech/quiz/marker-c.wav',
+    `/assets/generated/speech/quiz/option-${questionId}-${optionIds[2]}.wav`,
+  ])
+  expect(await page.evaluate(() =>
+    (window as Window & { __synthesizedQuizText: string[] })
+      .__synthesizedQuizText,
+  )).toEqual([])
 
   const correctAnswerSelector = [
     '[data-option-id="block-dust"]',
@@ -111,14 +134,14 @@ test('choice questions speak aloud and label answers for pre-readers', async ({
   ].join(', ')
   await page.locator(`.quiz-option:not(${correctAnswerSelector})`).first().click()
   await expect.poll(() => page.evaluate(() =>
-    (window as Window & { __spokenQuizText: string[] }).__spokenQuizText.at(-1),
-  )).toBe('没关系，再想一想，你一定可以的。')
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.at(-1),
+  )).toBe('/assets/generated/speech/quiz/feedback-wrong.wav')
 
   await page.getByRole('button', { name: '再试一次' }).click()
   await page.locator(correctAnswerSelector).click()
   await expect.poll(() => page.evaluate(() =>
-    (window as Window & { __spokenQuizText: string[] }).__spokenQuizText.at(-1),
-  )).toBe('太棒了，答对啦！')
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.at(-1),
+  )).toBe('/assets/generated/speech/quiz/feedback-correct.wav')
 })
 
 test('a child can start the game from the portrait home screen', async ({
