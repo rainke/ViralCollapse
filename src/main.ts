@@ -25,6 +25,10 @@ import {
   selectQuizQuestion,
   type QuizQuestion,
 } from './game/revival/quiz'
+import {
+  getQuizFeedbackSpeech,
+  getQuizSpeechSequence,
+} from './game/revival/quizSpeech'
 import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
 import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
 import { SPEECH_TARGETS } from './game/revival/speech/policy'
@@ -40,7 +44,8 @@ function element<T extends HTMLElement>(selector: string): T {
 class SoundSynth {
   private context?: AudioContext
   private speech?: HTMLAudioElement
-  private utterance?: SpeechSynthesisUtterance
+  private speechQueue: string[] = []
+  private speechSequence = 0
   muted = false
 
   unlock(): void {
@@ -116,39 +121,42 @@ class SoundSynth {
   }
 
   playSpeech(asset: string): void {
-    if (this.muted) return
-    this.speech?.pause()
-    window.speechSynthesis?.cancel()
-    this.utterance = undefined
-    this.speech = new Audio(asset)
-    void this.speech.play().catch(() => {})
+    this.playSpeechSequence([asset])
   }
 
-  speakText(text: string): void {
-    if (
-      this.muted ||
-      !window.speechSynthesis ||
-      typeof SpeechSynthesisUtterance === 'undefined'
-    ) return
-    this.speech?.pause()
-    window.speechSynthesis.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'zh-CN'
-    utterance.rate = 0.88
-    utterance.pitch = 1.08
-    utterance.onend = () => {
-      if (this.utterance === utterance) this.utterance = undefined
+  playSpeechSequence(assets: readonly string[]): void {
+    if (this.muted || assets.length === 0) return
+    this.stopSpeech()
+    this.speechQueue = [...assets]
+    const sequence = this.speechSequence
+    const playNext = () => {
+      if (this.muted || sequence !== this.speechSequence) return
+      const asset = this.speechQueue.shift()
+      if (!asset) {
+        this.speech = undefined
+        return
+      }
+      const speech = new Audio(asset)
+      this.speech = speech
+      const advance = () => playNext()
+      speech.addEventListener('ended', advance, { once: true })
+      speech.addEventListener('error', advance, { once: true })
+      void speech.play().catch(advance)
     }
-    this.utterance = utterance
-    window.speechSynthesis.speak(utterance)
+    playNext()
+  }
+
+  private stopSpeech(): void {
+    this.speechSequence += 1
+    this.speechQueue = []
+    this.speech?.pause()
+    this.speech = undefined
   }
 
   setMuted(muted: boolean): void {
     this.muted = muted
     if (!muted) return
-    this.speech?.pause()
-    window.speechSynthesis?.cancel()
-    this.utterance = undefined
+    this.stopSpeech()
   }
 }
 
@@ -494,12 +502,6 @@ function renderReviveQuestion(
   onComplete: () => void,
 ): void {
   const optionMarkers = ['A', 'B', 'C', 'D']
-  const narration = [
-    `请听题。${question.prompt}`,
-    ...question.options.map(
-      (option, index) => `${optionMarkers[index]}，${option.label}`,
-    ),
-  ].join('。') + '。'
   modalBody.textContent = question.prompt
   const group = document.createElement('fieldset')
   group.className = 'quiz-options'
@@ -521,13 +523,13 @@ function renderReviveQuestion(
       feedback.classList.add(result.correct ? 'is-correct' : 'is-wrong')
       if (result.correct) {
         feedback.textContent = '答对啦！复活能量已充满。'
-        sound.speakText('太棒了，答对啦！')
+        sound.playSpeech(getQuizFeedbackSpeech(true).asset)
         window.setTimeout(onComplete, 450)
         return
       }
 
       feedback.textContent = `再想一想：${result.explanation}`
-      sound.speakText('没关系，再想一想，你一定可以的。')
+      sound.playSpeech(getQuizFeedbackSpeech(false).asset)
       const retryButton = button(
         '再试一次',
         'secondary-button quiz-retry',
@@ -575,7 +577,9 @@ function renderReviveQuestion(
   })
 
   modalActions.replaceChildren(group, feedback)
-  sound.speakText(narration)
+  sound.playSpeechSequence(
+    getQuizSpeechSequence(question).map((speech) => speech.asset),
+  )
 }
 
 function showChoiceFallback(

@@ -31,17 +31,17 @@ describe('generated quiz speech', () => {
   })
 
   it('follows shuffled option order without changing generated option audio', () => {
-    const question = QUIZ_QUESTIONS[0]
+    const question = QUIZ_QUESTIONS[0]!
     const shuffled = shuffleQuizOptions(question, () => 0)
 
     expect(getQuizSpeechSequence(shuffled).map((speech) => speech.text)).toEqual([
       `请听题。${question.prompt}`,
       'A，',
-      question.options[1].label,
+      question.options[1]!.label,
       'B，',
-      question.options[2].label,
+      question.options[2]!.label,
       'C，',
-      question.options[0].label,
+      question.options[0]!.label,
     ])
   })
 

@@ -1,0 +1,232 @@
+[
+  {
+    "id": "marker:a",
+    "text": "A，",
+    "asset": "/assets/generated/speech/quiz/marker-a.wav"
+  },
+  {
+    "id": "marker:b",
+    "text": "B，",
+    "asset": "/assets/generated/speech/quiz/marker-b.wav"
+  },
+  {
+    "id": "marker:c",
+    "text": "C，",
+    "asset": "/assets/generated/speech/quiz/marker-c.wav"
+  },
+  {
+    "id": "question:nose-blocks-dust",
+    "text": "请听题。鼻毛和黏液能帮我们做什么？",
+    "asset": "/assets/generated/speech/quiz/question-nose-blocks-dust.wav"
+  },
+  {
+    "id": "option:nose-blocks-dust:block-dust",
+    "text": "挡住灰尘和小坏蛋",
+    "asset": "/assets/generated/speech/quiz/option-nose-blocks-dust-block-dust.wav"
+  },
+  {
+    "id": "option:nose-blocks-dust:make-noise",
+    "text": "让声音变得更大",
+    "asset": "/assets/generated/speech/quiz/option-nose-blocks-dust-make-noise.wav"
+  },
+  {
+    "id": "option:nose-blocks-dust:change-color",
+    "text": "让鼻子改变颜色",
+    "asset": "/assets/generated/speech/quiz/option-nose-blocks-dust-change-color.wav"
+  },
+  {
+    "id": "question:nose-guard-location",
+    "text": "请听题。鼻毛和黏液是哪位身体小卫士？",
+    "asset": "/assets/generated/speech/quiz/question-nose-guard-location.wav"
+  },
+  {
+    "id": "option:nose-guard-location:in-nose",
+    "text": "鼻子小卫士",
+    "asset": "/assets/generated/speech/quiz/option-nose-guard-location-in-nose.wav"
+  },
+  {
+    "id": "option:nose-guard-location:in-feet",
+    "text": "脚丫小卫士",
+    "asset": "/assets/generated/speech/quiz/option-nose-guard-location-in-feet.wav"
+  },
+  {
+    "id": "option:nose-guard-location:in-hair",
+    "text": "头发小卫士",
+    "asset": "/assets/generated/speech/quiz/option-nose-guard-location-in-hair.wav"
+  },
+  {
+    "id": "question:hand-washing",
+    "text": "请听题。认真洗手有什么帮助？",
+    "asset": "/assets/generated/speech/quiz/question-hand-washing.wav"
+  },
+  {
+    "id": "option:hand-washing:wash-away",
+    "text": "把手上的脏东西冲走",
+    "asset": "/assets/generated/speech/quiz/option-hand-washing-wash-away.wav"
+  },
+  {
+    "id": "option:hand-washing:run-faster",
+    "text": "马上跑得更快",
+    "asset": "/assets/generated/speech/quiz/option-hand-washing-run-faster.wav"
+  },
+  {
+    "id": "option:hand-washing:grow-taller",
+    "text": "马上长得更高",
+    "asset": "/assets/generated/speech/quiz/option-hand-washing-grow-taller.wav"
+  },
+  {
+    "id": "question:virus-shapes",
+    "text": "请听题。病毒的外形都一模一样吗？",
+    "asset": "/assets/generated/speech/quiz/question-virus-shapes.wav"
+  },
+  {
+    "id": "option:virus-shapes:different",
+    "text": "不是，病毒外形很多样",
+    "asset": "/assets/generated/speech/quiz/option-virus-shapes-different.wav"
+  },
+  {
+    "id": "option:virus-shapes:same",
+    "text": "是的，全部一模一样",
+    "asset": "/assets/generated/speech/quiz/option-virus-shapes-same.wav"
+  },
+  {
+    "id": "question:fresh-air",
+    "text": "请听题。怎样能让房间里的空气更舒服？",
+    "asset": "/assets/generated/speech/quiz/question-fresh-air.wav"
+  },
+  {
+    "id": "option:fresh-air:ventilate",
+    "text": "开窗让新鲜空气流动",
+    "asset": "/assets/generated/speech/quiz/option-fresh-air-ventilate.wav"
+  },
+  {
+    "id": "option:fresh-air:close-window",
+    "text": "一直紧闭门窗",
+    "asset": "/assets/generated/speech/quiz/option-fresh-air-close-window.wav"
+  },
+  {
+    "id": "option:fresh-air:hide",
+    "text": "躲进被子里",
+    "asset": "/assets/generated/speech/quiz/option-fresh-air-hide.wav"
+  },
+  {
+    "id": "question:cover-cough",
+    "text": "请听题。咳嗽或打喷嚏时应该怎么做？",
+    "asset": "/assets/generated/speech/quiz/question-cover-cough.wav"
+  },
+  {
+    "id": "option:cover-cough:cover",
+    "text": "用纸巾或手肘遮住口鼻",
+    "asset": "/assets/generated/speech/quiz/option-cover-cough-cover.wav"
+  },
+  {
+    "id": "option:cover-cough:nothing",
+    "text": "什么也不用做",
+    "asset": "/assets/generated/speech/quiz/option-cover-cough-nothing.wav"
+  },
+  {
+    "id": "option:cover-cough:hands",
+    "text": "对着手掌咳嗽",
+    "asset": "/assets/generated/speech/quiz/option-cover-cough-hands.wav"
+  },
+  {
+    "id": "question:drink-water",
+    "text": "请听题。每天记得喝水，是为了什么？",
+    "asset": "/assets/generated/speech/quiz/question-drink-water.wav"
+  },
+  {
+    "id": "option:drink-water:body-work",
+    "text": "让身体舒服地工作",
+    "asset": "/assets/generated/speech/quiz/option-drink-water-body-work.wav"
+  },
+  {
+    "id": "option:drink-water:skip-sleep",
+    "text": "以后不需要睡觉",
+    "asset": "/assets/generated/speech/quiz/option-drink-water-skip-sleep.wav"
+  },
+  {
+    "id": "option:drink-water:never-eat",
+    "text": "以后不需要吃饭",
+    "asset": "/assets/generated/speech/quiz/option-drink-water-never-eat.wav"
+  },
+  {
+    "id": "question:sleep-energy",
+    "text": "请听题。早点睡、好好休息会怎样？",
+    "asset": "/assets/generated/speech/quiz/question-sleep-energy.wav"
+  },
+  {
+    "id": "option:sleep-energy:restore",
+    "text": "身体会补充能量",
+    "asset": "/assets/generated/speech/quiz/option-sleep-energy-restore.wav"
+  },
+  {
+    "id": "option:sleep-energy:weaken",
+    "text": "身体会马上变弱",
+    "asset": "/assets/generated/speech/quiz/option-sleep-energy-weaken.wav"
+  },
+  {
+    "id": "question:exercise-strength",
+    "text": "请听题。跑跑跳跳做运动有什么帮助？",
+    "asset": "/assets/generated/speech/quiz/question-exercise-strength.wav"
+  },
+  {
+    "id": "option:exercise-strength:strength",
+    "text": "身体会更有力量",
+    "asset": "/assets/generated/speech/quiz/option-exercise-strength-strength.wav"
+  },
+  {
+    "id": "option:exercise-strength:no-water",
+    "text": "从此不需要喝水",
+    "asset": "/assets/generated/speech/quiz/option-exercise-strength-no-water.wav"
+  },
+  {
+    "id": "option:exercise-strength:no-rest",
+    "text": "从此不需要休息",
+    "asset": "/assets/generated/speech/quiz/option-exercise-strength-no-rest.wav"
+  },
+  {
+    "id": "question:tell-adult",
+    "text": "请听题。身体不舒服时应该怎么做？",
+    "asset": "/assets/generated/speech/quiz/question-tell-adult.wav"
+  },
+  {
+    "id": "option:tell-adult:tell",
+    "text": "及时告诉信任的大人",
+    "asset": "/assets/generated/speech/quiz/option-tell-adult-tell.wav"
+  },
+  {
+    "id": "option:tell-adult:hide",
+    "text": "一直藏着不说",
+    "asset": "/assets/generated/speech/quiz/option-tell-adult-hide.wav"
+  },
+  {
+    "id": "question:vaccine-practice",
+    "text": "请听题。疫苗会怎样帮助身体？",
+    "asset": "/assets/generated/speech/quiz/question-vaccine-practice.wav"
+  },
+  {
+    "id": "option:vaccine-practice:practice",
+    "text": "提前练习怎样保护自己",
+    "asset": "/assets/generated/speech/quiz/option-vaccine-practice-practice.wav"
+  },
+  {
+    "id": "option:vaccine-practice:replace-sleep",
+    "text": "代替每天睡觉",
+    "asset": "/assets/generated/speech/quiz/option-vaccine-practice-replace-sleep.wav"
+  },
+  {
+    "id": "option:vaccine-practice:change-shape",
+    "text": "把身体变成另一种形状",
+    "asset": "/assets/generated/speech/quiz/option-vaccine-practice-change-shape.wav"
+  },
+  {
+    "id": "feedback:correct",
+    "text": "太棒了，答对啦！",
+    "asset": "/assets/generated/speech/quiz/feedback-correct.wav"
+  },
+  {
+    "id": "feedback:wrong",
+    "text": "没关系，再想一想，你一定可以的。",
+    "asset": "/assets/generated/speech/quiz/feedback-wrong.wav"
+  }
+]

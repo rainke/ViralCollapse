@@ -12,7 +12,10 @@ import {
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const sourcePath = resolve(root, process.env.BAILIAN_SOURCE_PATH ?? 'source.mp3')
-const manifestPath = resolve(root, 'assets/speech-manifest.json')
+const manifestPaths = [
+  resolve(root, 'assets/speech-manifest.json'),
+  resolve(root, 'assets/quiz-speech-manifest.json'),
+]
 const apiKey = process.env.BAILIAN_API_KEY
 const voiceName = process.env.BAILIAN_VOICE_NAME ?? 'ViralGuard'
 
@@ -64,17 +67,17 @@ async function synthesizeSpeech(speech, voice) {
   const body = await requestJson(
     BAILIAN_GENERATION_ENDPOINT,
     buildSpeechPayload(voice, speech.text),
-    `Speech generation for level ${speech.level}`,
+    `Speech generation for ${speech.asset}`,
   )
   const audioUrl = body.output?.audio?.url
   if (!audioUrl || typeof audioUrl !== 'string') {
-    throw new Error(`Level ${speech.level} response contained no audio URL`)
+    throw new Error(`Speech generation for ${speech.asset} contained no audio URL`)
   }
 
   const audioResponse = await fetch(audioUrl)
   if (!audioResponse.ok) {
     throw new Error(
-      `Downloading speech for level ${speech.level} failed: HTTP ${audioResponse.status}`,
+      `Downloading ${speech.asset} failed: HTTP ${audioResponse.status}`,
     )
   }
   const outputPath = resolve(root, 'public', speech.asset.replace(/^\//, ''))
@@ -101,7 +104,9 @@ async function getExistingAssets(speech) {
 }
 
 async function main() {
-  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const manifest = (await Promise.all(
+    manifestPaths.map(async (path) => JSON.parse(await readFile(path, 'utf8'))),
+  )).flat()
   const missingSpeech = getMissingSpeech(
     manifest,
     await getExistingAssets(manifest),
