@@ -329,6 +329,119 @@ test('player death explodes before the revive dialog transitions in', async ({
   expect(transitionDuration).toBeGreaterThan(0)
 })
 
+test('handwriting revive uses adapter completion, mistakes, fallback, and cleanup', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    type QuizCallbacks = {
+      onComplete: () => void
+      onMistake: () => void
+    }
+    const quizzes: QuizCallbacks[] = []
+    const state = { cancels: 0, failLoad: false }
+    Object.assign(window, {
+      __handwritingTest: { quizzes, state },
+      __viralHandwritingAdapter: {
+        create: (
+          _target: HTMLElement,
+          _character: string,
+          options: { onLoadCharDataError: () => void },
+        ) => {
+          if (state.failLoad) queueMicrotask(options.onLoadCharDataError)
+          return {
+            quiz: (callbacks: QuizCallbacks) => quizzes.push(callbacks),
+            cancelQuiz: () => state.cancels++,
+          }
+        },
+      },
+    })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+
+  await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      state: { health: number; invulnerableUntil: number }
+      player: unknown
+      enemies: { getChildren: () => unknown[] }
+      spawnEnemy: () => void
+      onPlayerHitsDanger: (player: unknown, danger: unknown) => void
+    }
+    scene.state.health = 1
+    scene.state.invulnerableUntil = 0
+    scene.spawnEnemy()
+    scene.onPlayerHitsDanger(scene.player, scene.enemies.getChildren().at(-1))
+  })
+  const canvas = page.locator('.handwriting-canvas')
+  await expect(canvas).toBeVisible()
+  await expect(canvas).toHaveCSS('touch-action', 'none')
+
+  await page.evaluate(() => {
+    const testState = (window as Window & {
+      __handwritingTest: { quizzes: Array<{ onMistake: () => void }> }
+    }).__handwritingTest
+    testState.quizzes[0].onMistake()
+  })
+  await expect(page.getByRole('status')).toContainText('再试一次')
+  await expect(page.locator('#modal')).toBeVisible()
+
+  await page.getByRole('button', { name: '重新书写' }).click()
+  await expect(page.getByRole('status')).toContainText('重新完整写一遍')
+  await page.evaluate(() => {
+    const testState = (window as Window & {
+      __handwritingTest: {
+        quizzes: Array<{ onComplete: () => void }>
+        state: { cancels: number; failLoad: boolean }
+      }
+    }).__handwritingTest
+    // The callback from the discarded first writer must not revive the player.
+    testState.quizzes[0].onComplete()
+  })
+  await expect(page.locator('#modal')).toBeVisible()
+  await page.evaluate(() => {
+    const testState = (window as Window & {
+      __handwritingTest: { quizzes: Array<{ onComplete: () => void }> }
+    }).__handwritingTest
+    testState.quizzes[1].onComplete()
+  })
+  await expect(page.locator('#modal')).toBeHidden()
+
+  await page.evaluate(() => {
+    const testState = (window as Window & {
+      __handwritingTest: { state: { failLoad: boolean } }
+    }).__handwritingTest
+    testState.state.failLoad = true
+    window.dispatchEvent(new CustomEvent('viral:revive', {
+      detail: {
+        restart: false,
+        challenge: {
+          id: 'handwriting-fallback',
+          type: 'writing',
+          status: 'pending',
+        },
+      },
+    }))
+  })
+  await expect(page.getByText('写字数据暂时没有到达')).toBeVisible()
+  await expect(page.locator('.handwriting-canvas')).toHaveCount(0)
+  const cleanup = await page.evaluate(() => {
+    window.dispatchEvent(new PageTransitionEvent('pagehide'))
+    return (window as Window & {
+      __handwritingTest: { state: { cancels: number } }
+    }).__handwritingTest.state.cancels
+  })
+  expect(cleanup).toBeGreaterThanOrEqual(3)
+  await expect(page.locator('#modal-actions')).toBeEmpty()
+})
+
 test('HUD shows numeric health and a seeded three-choice upgrade', async ({
   page,
 }) => {
@@ -718,6 +831,18 @@ test('saved chapter checkpoint continues from its world level', async ({
 test('one free revive is followed by a full-health level restart', async ({
   page,
 }) => {
+  await page.addInitScript(() => {
+    const quizzes: Array<{ onComplete: () => void }> = []
+    Object.assign(window, {
+      __reviveQuizzes: quizzes,
+      __viralHandwritingAdapter: {
+        create: () => ({
+          quiz: (callbacks: { onComplete: () => void }) => quizzes.push(callbacks),
+          cancelQuiz: () => {},
+        }),
+      },
+    })
+  })
   await page.goto('/')
   await page.getByRole('button', { name: '开始第一章' }).click()
   await page.waitForFunction(() => '__viralGame' in window)
@@ -752,10 +877,10 @@ test('one free revive is followed by a full-health level restart', async ({
     page.getByRole('heading', { name: '写出看到的汉字' }),
   ).toBeVisible()
   await expect(page.locator('#health-value')).toHaveText('0/100')
-  await page.getByRole('button', { name: '检查答案' }).click()
-  await expect(page.locator('#health-value')).toHaveText('0/100')
-  await page.getByRole('textbox', { name: '写汉字' }).fill('心')
-  await page.getByRole('button', { name: '检查答案' }).click()
+  await page.evaluate(() => {
+    (window as Window & { __reviveQuizzes: Array<{ onComplete: () => void }> })
+      .__reviveQuizzes.at(-1)?.onComplete()
+  })
   await expect(page.locator('#health-value')).toHaveText('60/100')
 
   await defeat()

@@ -532,6 +532,60 @@ button:focus-visible {
   gap: 10px;
 }
 
+.handwriting-prompt,
+.handwriting-status {
+  margin: 0;
+  color: #5c5087;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.handwriting-prompt strong {
+  margin-left: 4px;
+  color: #35275e;
+  font-size: 28px;
+}
+
+.handwriting-canvas {
+  width: min(240px, 66vw, 31dvh);
+  aspect-ratio: 1;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 3px solid #9a8bcf;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, transparent 49.5%, #ddd7f3 50%, transparent 50.5%),
+    linear-gradient(transparent 49.5%, #ddd7f3 50%, transparent 50.5%),
+    #fff;
+  touch-action: none;
+}
+
+.handwriting-canvas svg,
+.handwriting-canvas canvas {
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+}
+
+.handwriting-canvas.has-mistake {
+  animation: handwriting-mistake 260ms ease-out;
+}
+
+.handwriting-reset {
+  min-height: 42px;
+}
+
+.handwriting-choices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.handwriting-choices .secondary-button {
+  min-height: 58px;
+  font-size: 25px;
+}
+
 .upgrade-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -625,6 +679,24 @@ button:focus-visible {
   }
   50% {
     transform: translateY(-16px);
+  }
+}
+
+@keyframes handwriting-mistake {
+  50% {
+    border-color: #ff765f;
+    background-color: #fff1ed;
+    transform: translateX(3px);
+  }
+}
+
+@media (max-height: 740px) {
+  .modal-card:has(.handwriting-canvas) {
+    padding-block: 18px 14px;
+  }
+
+  .modal-card:has(.handwriting-canvas) > p:not(.modal-kicker) {
+    margin-block: 5px 8px;
   }
 }
 

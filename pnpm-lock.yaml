@@ -207,6 +207,9 @@ importers:
 
   .:
     dependencies:
+      hanzi-writer:
+        specifier: ^3.7.3
+        version: 3.7.3
       phaser:
         specifier: ^3.90.0
         version: 3.90.0
@@ -603,6 +606,9 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  hanzi-writer@3.7.3:
+    resolution: {integrity: sha512-fdOFrb1cXWL/pV/oplJkcdziCvjJzhhf+qoIBm5IpVGxPBZEu4eLB6ZG5RJDbKXyNbNlyx8oIpa3XrcUBcSXpg==}
 
   has-flag@4.0.0:
     resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
@@ -1155,6 +1161,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  hanzi-writer@3.7.3: {}
 
   has-flag@4.0.0: {}
 
