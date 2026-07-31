@@ -1,5 +1,42 @@
 import { getPlayerStats } from './balance'
 
+export type RevivalChallengeType = 'choice' | 'writing' | 'reading'
+export type RevivalChallengeStatus = 'pending' | 'completed' | 'consumed'
+
+export interface RevivalChallenge {
+  id: string
+  type: RevivalChallengeType
+  status: RevivalChallengeStatus
+}
+
+export function startRevivalChallenge(
+  type: RevivalChallengeType,
+  id: string,
+): RevivalChallenge {
+  return { id, type, status: 'pending' }
+}
+
+export function completeRevivalChallenge(
+  challenge: RevivalChallenge,
+  successful: boolean,
+  consume = false,
+): RevivalChallenge {
+  if (challenge.status === 'consumed' || !successful) return challenge
+  if (consume && challenge.status === 'completed') {
+    return { ...challenge, status: 'consumed' }
+  }
+  return challenge.status === 'pending'
+    ? { ...challenge, status: 'completed' }
+    : challenge
+}
+
+export function canRevive(
+  challenge: RevivalChallenge | undefined,
+  instanceId: string,
+): boolean {
+  return challenge?.id === instanceId && challenge.status === 'completed'
+}
+
 export type UpgradeId =
   | 'damage'
   | 'rapid'

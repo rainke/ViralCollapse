@@ -16,9 +16,11 @@ import {
   advanceToLevel,
   applyDamage,
   applyUpgrade,
+  canRevive,
   calculateBulletDamage,
   chooseUpgradeOptions,
   createGameState,
+  completeRevivalChallenge,
   getBulletPattern,
   getChapterStars,
   getFireInterval,
@@ -29,9 +31,12 @@ import {
   recordVirusCleaned,
   restartCurrentLevel,
   revivePlayer,
+  startRevivalChallenge,
   shouldDropSkillFragment,
   type GameState,
   type RunSave,
+  type RevivalChallenge,
+  type RevivalChallengeType,
   type UpgradeId,
 } from './model'
 
@@ -77,6 +82,7 @@ export class GameScene extends Phaser.Scene {
   private bossFiredAt = 0
   private targetX = WIDTH / 2
   private targetY = HEIGHT - 132
+  private revivalChallenge?: RevivalChallenge
 
   constructor() {
     super('game')
@@ -167,6 +173,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   begin(run?: RunSave): void {
+    this.cancelRevivalChallenge()
     this.clearWorld()
     if (run) {
       const initial = createGameState(run.worldLevel, run.runSeed)
@@ -245,6 +252,10 @@ export class GameScene extends Phaser.Scene {
     return this.paused
   }
 
+  getWorldLevel(): number {
+    return this.state.worldLevel
+  }
+
   chooseUpgrade(upgrade: UpgradeId): void {
     if (!this.state.pendingUpgrades?.includes(upgrade)) return
     this.state = applyUpgrade(this.state, upgrade)
@@ -263,7 +274,22 @@ export class GameScene extends Phaser.Scene {
     this.startLevel(this.state.worldLevel + 1, true)
   }
 
-  revive(): void {
+  completeRevivalChallenge(instanceId: string, successful: boolean): boolean {
+    if (this.revivalChallenge?.id !== instanceId) return false
+    this.revivalChallenge = completeRevivalChallenge(
+      this.revivalChallenge,
+      successful,
+    )
+    return canRevive(this.revivalChallenge, instanceId)
+  }
+
+  revive(instanceId: string): boolean {
+    if (!canRevive(this.revivalChallenge, instanceId)) return false
+    this.revivalChallenge = completeRevivalChallenge(
+      this.revivalChallenge!,
+      true,
+      true,
+    )
     const restart = this.state.reviveUsed
     this.state = restart
       ? restartCurrentLevel(this.state)
@@ -287,6 +313,7 @@ export class GameScene extends Phaser.Scene {
       message: restart ? '本关重新开始，加油！' : '能量满满，继续出发！',
     })
     this.emitEvent('viral:sound', { kind: 'power' })
+    return true
   }
 
   private startLevel(levelNumber: number, advance = false): void {
@@ -640,12 +667,25 @@ export class GameScene extends Phaser.Scene {
     if (this.state.health === 0) {
       this.transitioning = true
       this.physics.world.pause()
+      this.cancelRevivalChallenge()
+      const challengeTypes: RevivalChallengeType[] = [
+        'choice',
+        'writing',
+        'reading',
+      ]
+      const type = challengeTypes[
+        (this.state.worldLevel + this.state.deaths) % challengeTypes.length
+      ]
+      const id = crypto.randomUUID()
+      this.revivalChallenge = startRevivalChallenge(type, id)
       this.explodePlayer(player)
-      this.time.delayedCall(PLAYER_DEATH_DELAY, () =>
+      this.time.delayedCall(PLAYER_DEATH_DELAY, () => {
+        if (this.revivalChallenge?.id !== id || this.state.health !== 0) return
         this.emitEvent('viral:revive', {
           restart: this.state.reviveUsed,
-        }),
-      )
+          challenge: this.revivalChallenge,
+        })
+      })
       return
     }
 
@@ -972,6 +1012,13 @@ export class GameScene extends Phaser.Scene {
     this.powerups?.clear(true, true)
     this.boss = undefined
     this.bossConfig = undefined
+  }
+
+  cancelRevivalChallenge(): void {
+    if (!this.revivalChallenge) return
+    const id = this.revivalChallenge.id
+    this.revivalChallenge = undefined
+    this.emitEvent('viral:reviveCancelled', { id })
   }
 
   private disableObject(object: Phaser.Physics.Arcade.Image): void {

@@ -4,8 +4,10 @@ import {
   applyDamage,
   applyUpgrade,
   calculateBulletDamage,
+  canRevive,
   chooseUpgradeOptions,
   createGameState,
+  completeRevivalChallenge,
   deserializeSave,
   getBulletPattern,
   getChapterStars,
@@ -17,12 +19,41 @@ import {
   restartCurrentLevel,
   recordVirusCleaned,
   revivePlayer,
+  startRevivalChallenge,
   serializeSave,
   shouldDropSkillFragment,
   type UpgradeId,
 } from './model'
 
 describe('game state', () => {
+  it('requires the matching completed revival challenge and consumes it once', () => {
+    const pending = startRevivalChallenge('choice', 'death-a')
+
+    expect(canRevive(pending, 'death-a')).toBe(false)
+    expect(canRevive(completeRevivalChallenge(pending, true), 'death-b')).toBe(false)
+
+    const completed = completeRevivalChallenge(pending, true)
+    expect(canRevive(completed, 'death-a')).toBe(true)
+    const consumed = completeRevivalChallenge(completed, true, true)
+    expect(canRevive(consumed, 'death-a')).toBe(false)
+    expect(completeRevivalChallenge(consumed, true)).toBe(consumed)
+  })
+
+  it('requires a fresh completed challenge for a second death', () => {
+    const first = completeRevivalChallenge(
+      startRevivalChallenge('writing', 'death-one'),
+      true,
+    )
+    const consumed = completeRevivalChallenge(first, true, true)
+    const second = startRevivalChallenge('reading', 'death-two')
+
+    expect(canRevive(consumed, 'death-one')).toBe(false)
+    expect(canRevive(second, 'death-two')).toBe(false)
+    expect(
+      canRevive(completeRevivalChallenge(second, true), 'death-two'),
+    ).toBe(true)
+  })
+
   it('starts a chapter at battle level one with scaled health', () => {
     const state = createGameState()
 

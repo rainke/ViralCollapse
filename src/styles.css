@@ -567,6 +567,35 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.challenge-button {
+  min-height: 58px;
+  border: 2px solid #b9afe9;
+  border-radius: 16px;
+  color: #453879;
+  font-size: 25px;
+  font-weight: 1000;
+  background: #fff;
+  cursor: pointer;
+}
+
+.challenge-input {
+  min-height: 52px;
+  border: 2px solid #b9afe9;
+  border-radius: 14px;
+  color: #35275e;
+  font: inherit;
+  font-size: 24px;
+  text-align: center;
+}
+
+.challenge-status {
+  min-height: 22px;
+  margin: 0;
+  color: #8c3c75;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .pause-card {
   padding-top: 28px;
 }
