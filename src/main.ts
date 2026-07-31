@@ -132,6 +132,7 @@ sound.muted = save.muted
 
 const home = element<HTMLElement>('#home-screen')
 const startButton = element<HTMLButtonElement>('#start-button')
+const homeRestartButton = element<HTMLButtonElement>('#home-restart-button')
 const hud = element<HTMLElement>('#hud')
 const tutorial = element<HTMLElement>('#tutorial')
 const toast = element<HTMLElement>('#toast')
@@ -152,6 +153,7 @@ let previousReviveQuestionId: string | undefined
 window.addEventListener('viral:ready', () => {
   gameReady = true
   startButton.disabled = false
+  homeRestartButton.disabled = false
 })
 
 const game = new Phaser.Game({
@@ -214,6 +216,7 @@ function updateStartLabel(): void {
   const level = nextWorldLevel()
   startButton.textContent =
     level === 1 ? '开始第一章' : `继续第 ${level} 关`
+  homeRestartButton.hidden = level === 1
 }
 
 function createRun(worldLevel: number): RunSave {
@@ -649,6 +652,18 @@ startButton.addEventListener('click', () => {
   hud.classList.remove('is-hidden')
   tutorial.classList.remove('is-hidden')
   scene().begin(save.run ?? createRun(nextWorldLevel()))
+  window.setTimeout(() => tutorial.classList.add('is-hidden'), 3_200)
+})
+
+homeRestartButton.addEventListener('click', () => {
+  if (!gameReady) return
+  const run = createRun(1)
+  persistSave({ run })
+  sound.unlock()
+  home.classList.add('is-hidden')
+  hud.classList.remove('is-hidden')
+  tutorial.classList.remove('is-hidden')
+  scene().begin(run)
   window.setTimeout(() => tutorial.classList.add('is-hidden'), 3_200)
 })
 
