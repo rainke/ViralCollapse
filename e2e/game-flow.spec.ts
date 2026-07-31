@@ -888,12 +888,49 @@ test('one free revive is followed by a full-health level restart', async ({
     page.getByRole('heading', { name: '读出这个汉字' }),
   ).toBeVisible()
   await expect(page.locator('#health-value')).toHaveText('0/100')
-  await page.getByRole('button', { name: '开始朗读' }).click()
+  await page.getByRole('button', { name: '改做选择题' }).click()
   await expect(
-    page.getByRole('heading', { name: '选出正确的汉字' }),
+    page.getByRole('heading', { name: '健康知识小问答' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: '心' }).click()
+  const correctAnswerSelector = [
+    '[data-option-id="block-dust"]',
+    '[data-option-id="in-nose"]',
+  ].join(', ')
+  const wrongAnswer = page.locator(
+    `.quiz-option:not(${correctAnswerSelector})`,
+  ).first()
+  await wrongAnswer.click()
+  await expect(page.locator('.quiz-feedback')).toContainText('再想一想')
+  await expect(page.locator('#health-value')).toHaveText('0/100')
+
+  await page.getByRole('button', { name: '再试一次' }).click()
+  await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: { scene: { getScene: (key: string) => unknown } }
+        __reviveCalls?: number
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    const scene = game.scene.getScene('game') as {
+      revive: (instanceId: string) => boolean
+    }
+    const originalRevive = scene.revive.bind(scene)
+    scene.revive = (instanceId: string) => {
+      const trackedWindow = window as Window & { __reviveCalls?: number }
+      trackedWindow.__reviveCalls = (trackedWindow.__reviveCalls ?? 0) + 1
+      return originalRevive(instanceId)
+    }
+    const answer = document.querySelector<HTMLButtonElement>(
+      '[data-option-id="block-dust"], [data-option-id="in-nose"]',
+    )
+    answer?.click()
+    answer?.click()
+  })
   await expect(page.locator('#health-value')).toHaveText('100/100')
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __reviveCalls?: number }).__reviveCalls,
+  )).toBe(1)
   await expect(page.locator('#score')).toHaveText('0')
 })
 

@@ -586,6 +586,81 @@ button:focus-visible {
   font-size: 25px;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.quiz-options {
+  display: grid;
+  gap: 9px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.quiz-option {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 2px solid #bdb3e9;
+  border-radius: 15px;
+  color: #443476;
+  font-size: 14px;
+  font-weight: 900;
+  background: rgb(255 255 255 / 78%);
+  cursor: pointer;
+}
+
+.quiz-option:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.quiz-option.is-correct {
+  border-color: #3fa66d;
+  color: #175c38;
+  background: #d9f8e5;
+  opacity: 1;
+}
+
+.quiz-option.is-wrong {
+  border-color: #d76a77;
+  color: #7b2732;
+  background: #ffe1e4;
+  opacity: 1;
+}
+
+.quiz-feedback {
+  min-height: 22px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.quiz-feedback.is-correct {
+  color: #247347;
+}
+
+.quiz-feedback.is-wrong {
+  color: #962f3d;
+}
+
+.quiz-retry {
+  min-height: 44px;
+}
+
+.quiz-change {
+  color: #65549e;
+}
+
 .upgrade-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
