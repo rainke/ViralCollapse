@@ -19,6 +19,11 @@ import {
   type HandwritingTask,
   type QuizCallbacks,
 } from './game/revival/handwriting'
+import {
+  checkQuizAnswer,
+  selectQuizQuestion,
+  type QuizQuestion,
+} from './game/revival/quiz'
 import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
 import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
 import { SPEECH_TARGETS } from './game/revival/speech/policy'
@@ -142,6 +147,7 @@ let destroyRevivalChallenge: (() => void) | undefined
 const handwritingQuiz = new HandwritingQuiz(
   window.__viralHandwritingAdapter ?? hanziWriterAdapter,
 )
+let previousReviveQuestionId: string | undefined
 
 window.addEventListener('viral:ready', () => {
   gameReady = true
@@ -336,9 +342,9 @@ function showSkillFragment(detail: { options: UpgradeId[] }): void {
 }
 
 const revivalWords = [
-  { character: '手', reading: 'shou', options: ['手', '口', '目'] },
-  { character: '心', reading: 'xin', options: ['火', '心', '木'] },
-  { character: '水', reading: 'shui', options: ['山', '田', '水'] },
+  { character: '手', reading: 'shou' },
+  { character: '心', reading: 'xin' },
+  { character: '水', reading: 'shui' },
 ]
 
 function showRevive(detail: {
@@ -370,21 +376,24 @@ function showRevive(detail: {
   const retry = (message: string) => {
     status.textContent = message
   }
-  const showChoice = () => {
-    modalTitle.textContent = '选出正确的汉字'
-    modalBody.textContent = `请找到“${word.character}”字，答错可以再试。`
-    const choices = word.options.map((option) =>
-      button(option, 'challenge-button', () => {
-        if (option === word.character) succeed()
-        else retry('还差一点，再选一次吧！')
-      }),
-    )
-    modalActions.replaceChildren(...choices, status)
+  const showHealthQuiz = () => {
+    modalTitle.textContent = '健康知识小问答'
+    const worldLevel = save.run?.worldLevel ?? nextWorldLevel()
+    const question = selectQuizQuestion(worldLevel, previousReviveQuestionId)
+    if (!question) {
+      modalBody.textContent = '暂时没有适合本关的题目，可以安全继续。'
+      modalActions.replaceChildren(
+        button('继续挑战', 'primary-button', succeed),
+      )
+      return
+    }
+    previousReviveQuestionId = question.id
+    renderReviveQuestion(question, succeed)
   }
   modalIcon.textContent = '💙'
   modalKicker.textContent = detail.restart ? '完成任务后重试' : '完成任务后复活'
   if (detail.challenge.type === 'choice') {
-    showChoice()
+    showHealthQuiz()
   } else if (detail.challenge.type === 'writing') {
     modalTitle.textContent = '写出看到的汉字'
     modalBody.textContent = '按照笔顺写完目标字，才能为小卫士充满能量。'
@@ -402,8 +411,7 @@ function showRevive(detail: {
     const fallback = button('改做选择题', 'secondary-button', () => {
       void speechSession?.dispose()
       speechSession = undefined
-      showChoice()
-      retry('已切换到选择题，答对后才能复活。')
+      showHealthQuiz()
     })
     const listen = button('开始离线语音', 'primary-button', () => {
       if (
@@ -411,8 +419,7 @@ function showRevive(detail: {
         !navigator.mediaDevices?.getUserMedia ||
         typeof Worker === 'undefined'
       ) {
-        showChoice()
-        retry('设备不支持离线语音，已切换到选择题。')
+        showHealthQuiz()
         return
       }
       listen.disabled = true
@@ -450,6 +457,73 @@ function showRevive(detail: {
     modalActions.replaceChildren(listen, fallback, status)
   }
   showModal()
+}
+
+function renderReviveQuestion(
+  question: QuizQuestion,
+  onComplete: () => void,
+): void {
+  modalBody.textContent = question.prompt
+  const group = document.createElement('fieldset')
+  group.className = 'quiz-options'
+  const legend = document.createElement('legend')
+  legend.className = 'visually-hidden'
+  legend.textContent = '选择一个答案'
+  group.append(legend)
+
+  const feedback = document.createElement('p')
+  feedback.className = 'quiz-feedback'
+  feedback.setAttribute('aria-live', 'polite')
+
+  const optionButtons = question.options.map((option) => {
+    const optionButton = button(option.label, 'quiz-option', () => {
+      if (group.disabled) return
+      group.disabled = true
+      const result = checkQuizAnswer(question, option.id)
+      optionButton.classList.add(result.correct ? 'is-correct' : 'is-wrong')
+      feedback.classList.add(result.correct ? 'is-correct' : 'is-wrong')
+      if (result.correct) {
+        feedback.textContent = '答对啦！复活能量已充满。'
+        window.setTimeout(onComplete, 450)
+        return
+      }
+
+      feedback.textContent = `再想一想：${result.explanation}`
+      const retryButton = button(
+        '再试一次',
+        'secondary-button quiz-retry',
+        () => {
+          feedback.textContent = ''
+          feedback.className = 'quiz-feedback'
+          optionButtons.forEach((item) => item.classList.remove('is-wrong'))
+          group.disabled = false
+          optionButtons[0]?.focus()
+          retryButton.remove()
+          changeButton.remove()
+        },
+      )
+      const changeButton = button(
+        '换一道题',
+        'text-button quiz-change',
+        () => {
+          const next = selectQuizQuestion(
+            save.run?.worldLevel ?? nextWorldLevel(),
+            question.id,
+          )
+          if (next) {
+            previousReviveQuestionId = next.id
+            renderReviveQuestion(next, onComplete)
+          }
+        },
+      )
+      modalActions.append(retryButton, changeButton)
+    })
+    optionButton.dataset.optionId = option.id
+    group.append(optionButton)
+    return optionButton
+  })
+
+  modalActions.replaceChildren(group, feedback)
 }
 
 function showChoiceFallback(
