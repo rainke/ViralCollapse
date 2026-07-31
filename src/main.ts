@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import packageMetadata from '../package.json'
 import './styles.css'
 import { GameScene } from './game/GameScene'
 import {
@@ -127,6 +128,7 @@ class SoundSynth {
 }
 
 const sound = new SoundSynth()
+element('#game-version').textContent = `v${packageMetadata.version}`
 let save: GameSave = deserializeSave(localStorage.getItem(SAVE_KEY))
 sound.muted = save.muted
 
