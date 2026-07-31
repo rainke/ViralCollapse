@@ -1,0 +1,5 @@
+/speech/sherpa-onnx/manifest.json
+  Cache-Control: no-cache
+
+/speech/sherpa-onnx/*
+  Cache-Control: public, max-age=31536000, immutable

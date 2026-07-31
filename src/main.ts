@@ -11,6 +11,9 @@ import {
   type UpgradeId,
 } from './game/model'
 import { getFactSpeech } from './game/speech'
+import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
+import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
+import { SPEECH_TARGETS } from './game/revival/speech/policy'
 
 const SAVE_KEY = 'viral-collapse-save'
 
@@ -336,12 +339,11 @@ function showRevive(detail: {
     (scene().getWorldLevel() + detail.challenge.id.length) % revivalWords.length
   ]
   let active = true
-  let stream: MediaStream | undefined
-  let recognition: { stop: () => void } | undefined
+  let speechSession: RevivalSpeechSession | undefined
   destroyRevivalChallenge = () => {
     active = false
-    recognition?.stop()
-    stream?.getTracks().forEach((track) => track.stop())
+    void speechSession?.dispose()
+    speechSession = undefined
   }
   const succeed = () => {
     if (!active || !scene().completeRevivalChallenge(challengeId, true)) return
@@ -383,50 +385,59 @@ function showRevive(detail: {
     modalActions.replaceChildren(input, submit, status)
   } else {
     modalTitle.textContent = '读出这个汉字'
-    modalBody.textContent = `请读出：${word.character}（可以重复尝试）`
-    const SpeechRecognition = (window as Window & {
-      SpeechRecognition?: new () => {
-        lang: string
-        start: () => void
-        stop: () => void
-        onresult: (event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void
-        onerror: () => void
-      }
-      webkitSpeechRecognition?: new () => {
-        lang: string
-        start: () => void
-        stop: () => void
-        onresult: (event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void
-        onerror: () => void
-      }
-    }).SpeechRecognition ?? (window as Window & { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition
-    if (!SpeechRecognition || !navigator.mediaDevices?.getUserMedia) {
-      retry('麦克风不可用，已切换到选择题。')
+    const target = SPEECH_TARGETS.find(
+      (item) => item.character === word.character,
+    )
+    modalBody.textContent = `请读出：${word.character}。麦克风只用于本机离线识别，音频不会上传；点开始后才会请求权限。`
+    const fallback = button('改做选择题', 'secondary-button', () => {
+      void speechSession?.dispose()
+      speechSession = undefined
       showChoice()
-    } else {
-      const listen = button('开始朗读', 'primary-button', async () => {
-        try {
-          stream ??= await navigator.mediaDevices.getUserMedia({ audio: true })
-          if (!active) return
-          const speech = new SpeechRecognition()
-          recognition = speech
-          speech.lang = 'zh-CN'
-          speech.onresult = (event: {
-            results: ArrayLike<{ 0: { transcript: string } }>
-          }) => {
-            const transcript = event.results[0][0].transcript
-            if (transcript.includes(word.character) || transcript.toLowerCase().includes(word.reading)) succeed()
-            else retry('没有听清，可以再读一次。')
+      retry('已切换到选择题，答对后才能复活。')
+    })
+    const listen = button('开始离线语音', 'primary-button', () => {
+      if (
+        !target ||
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof Worker === 'undefined'
+      ) {
+        showChoice()
+        retry('设备不支持离线语音，已切换到选择题。')
+        return
+      }
+      listen.disabled = true
+      speechSession = new RevivalSpeechSession(
+        new SherpaWasmRecognizer(),
+        target,
+        (state) => {
+          const labels = {
+            idle: '准备好后开始语音任务', loading: '正在下载并初始化离线模型…',
+            listening: '正在听…', success: '念对啦！正在复活…', incorrect: '没有念对，请重试。',
+            timeout: '等待超时，请重试。', silent: '没有听到声音，请重试。',
+            'low-confidence': '听得不够清楚，请重试。', error: '语音不可用，请改做选择题。',
+            disposed: '语音任务已结束。',
           }
-          speech.onerror = () => retry('没有听清，可以再读一次。')
-          speech.start()
-        } catch {
-          showChoice()
-          retry('麦克风不可用，已切换到选择题。')
-        }
+          retry(labels[state])
+          if (state === 'success') succeed()
+          if (['incorrect', 'timeout', 'silent', 'low-confidence', 'error'].includes(state)) {
+            listen.disabled = false
+            listen.textContent = '重试语音'
+          }
+        },
+        8_000,
+        ({ loaded, total, phase }) => {
+          const percent = total === 0 ? 0 : Math.round((loaded / total) * 100)
+          retry(phase === 'downloading'
+            ? `正在下载离线模型… ${percent}%`
+            : `正在初始化离线模型… ${percent}%`)
+        },
+      )
+      void speechSession.start().catch(() => {
+        retry('权限被拒绝或模型加载失败，请改做选择题。')
+        listen.disabled = false
       })
-      modalActions.replaceChildren(listen, status)
-    }
+    })
+    modalActions.replaceChildren(listen, fallback, status)
   }
   showModal()
 }

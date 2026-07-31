@@ -1,0 +1,5 @@
+{
+  "engine": "sherpa-onnx-wasm",
+  "version": "pending-device-audit",
+  "files": []
+}
