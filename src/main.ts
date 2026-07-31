@@ -40,6 +40,7 @@ function element<T extends HTMLElement>(selector: string): T {
 class SoundSynth {
   private context?: AudioContext
   private speech?: HTMLAudioElement
+  private utterance?: SpeechSynthesisUtterance
   muted = false
 
   unlock(): void {
@@ -117,13 +118,37 @@ class SoundSynth {
   playSpeech(asset: string): void {
     if (this.muted) return
     this.speech?.pause()
+    window.speechSynthesis?.cancel()
+    this.utterance = undefined
     this.speech = new Audio(asset)
     void this.speech.play().catch(() => {})
   }
 
+  speakText(text: string): void {
+    if (
+      this.muted ||
+      !window.speechSynthesis ||
+      typeof SpeechSynthesisUtterance === 'undefined'
+    ) return
+    this.speech?.pause()
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    utterance.lang = 'zh-CN'
+    utterance.rate = 0.88
+    utterance.pitch = 1.08
+    utterance.onend = () => {
+      if (this.utterance === utterance) this.utterance = undefined
+    }
+    this.utterance = utterance
+    window.speechSynthesis.speak(utterance)
+  }
+
   setMuted(muted: boolean): void {
     this.muted = muted
-    if (muted) this.speech?.pause()
+    if (!muted) return
+    this.speech?.pause()
+    window.speechSynthesis?.cancel()
+    this.utterance = undefined
   }
 }
 
@@ -468,6 +493,13 @@ function renderReviveQuestion(
   question: QuizQuestion,
   onComplete: () => void,
 ): void {
+  const optionMarkers = ['A', 'B', 'C', 'D']
+  const narration = [
+    `请听题。${question.prompt}`,
+    ...question.options.map(
+      (option, index) => `${optionMarkers[index]}，${option.label}`,
+    ),
+  ].join('。') + '。'
   modalBody.textContent = question.prompt
   const group = document.createElement('fieldset')
   group.className = 'quiz-options'
@@ -480,8 +512,8 @@ function renderReviveQuestion(
   feedback.className = 'quiz-feedback'
   feedback.setAttribute('aria-live', 'polite')
 
-  const optionButtons = question.options.map((option) => {
-    const optionButton = button(option.label, 'quiz-option', () => {
+  const optionButtons = question.options.map((option, index) => {
+    const optionButton = button('', 'quiz-option', () => {
       if (group.disabled) return
       group.disabled = true
       const result = checkQuizAnswer(question, option.id)
@@ -489,11 +521,13 @@ function renderReviveQuestion(
       feedback.classList.add(result.correct ? 'is-correct' : 'is-wrong')
       if (result.correct) {
         feedback.textContent = '答对啦！复活能量已充满。'
+        sound.speakText('太棒了，答对啦！')
         window.setTimeout(onComplete, 450)
         return
       }
 
       feedback.textContent = `再想一想：${result.explanation}`
+      sound.speakText('没关系，再想一想，你一定可以的。')
       const retryButton = button(
         '再试一次',
         'secondary-button quiz-retry',
@@ -523,12 +557,25 @@ function renderReviveQuestion(
       )
       modalActions.append(retryButton, changeButton)
     })
+    const marker = document.createElement('span')
+    marker.className = 'quiz-option-marker'
+    marker.setAttribute('aria-hidden', 'true')
+    marker.textContent = optionMarkers[index]
+    const label = document.createElement('span')
+    label.className = 'quiz-option-label'
+    label.textContent = option.label
+    optionButton.append(marker, label)
+    optionButton.setAttribute(
+      'aria-label',
+      `${optionMarkers[index]}，${option.label}`,
+    )
     optionButton.dataset.optionId = option.id
     group.append(optionButton)
     return optionButton
   })
 
   modalActions.replaceChildren(group, feedback)
+  sound.speakText(narration)
 }
 
 function showChoiceFallback(
