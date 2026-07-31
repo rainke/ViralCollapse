@@ -56,6 +56,71 @@ test('permission denial offers a required fallback task', async ({ page }) => {
   await expect(page.locator('.quiz-option')).toHaveCount(3)
 })
 
+test('choice questions speak aloud and label answers for pre-readers', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const spoken: string[] = []
+    class TestSpeechSynthesisUtterance {
+      lang = ''
+      pitch = 1
+      rate = 1
+
+      constructor(readonly text: string) {}
+    }
+    Object.defineProperty(window, 'SpeechSynthesisUtterance', {
+      configurable: true,
+      value: TestSpeechSynthesisUtterance,
+    })
+    Object.defineProperty(window, 'speechSynthesis', {
+      configurable: true,
+      value: {
+        cancel: () => {},
+        speak: (utterance: { text: string }) => spoken.push(utterance.text),
+      },
+    })
+    Object.assign(window, { __spokenQuizText: spoken })
+  })
+  await page.goto('/')
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('viral:revive', {
+      detail: {
+        restart: false,
+        challenge: { id: 'spoken-choice', type: 'choice', status: 'pending' },
+      },
+    }))
+  })
+
+  const options = page.locator('.quiz-option')
+  await expect(options).toHaveText([/^A/, /^B/, /^C/])
+  const question = await page.locator('#modal-body').textContent()
+  const optionLabels = await options.evaluateAll((buttons) =>
+    buttons.map((item) => item.textContent?.slice(1).trim() ?? ''),
+  )
+  const firstSpeech = await page.evaluate(() =>
+    (window as Window & { __spokenQuizText: string[] }).__spokenQuizText[0],
+  )
+  expect(firstSpeech).toContain(question)
+  expect(firstSpeech).toContain(`A，${optionLabels[0]}`)
+  expect(firstSpeech).toContain(`B，${optionLabels[1]}`)
+  expect(firstSpeech).toContain(`C，${optionLabels[2]}`)
+
+  const correctAnswerSelector = [
+    '[data-option-id="block-dust"]',
+    '[data-option-id="in-nose"]',
+  ].join(', ')
+  await page.locator(`.quiz-option:not(${correctAnswerSelector})`).first().click()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __spokenQuizText: string[] }).__spokenQuizText.at(-1),
+  )).toBe('没关系，再想一想，你一定可以的。')
+
+  await page.getByRole('button', { name: '再试一次' }).click()
+  await page.locator(correctAnswerSelector).click()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __spokenQuizText: string[] }).__spokenQuizText.at(-1),
+  )).toBe('太棒了，答对啦！')
+})
+
 test('a child can start the game from the portrait home screen', async ({
   page,
 }) => {
