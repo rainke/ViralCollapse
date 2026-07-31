@@ -1,5 +1,20 @@
 import { expect, test } from '@playwright/test'
 
+test('permission denial offers a required fallback task', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: { getUserMedia: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')) },
+    })
+  })
+  await page.goto('/')
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('viral:revive')))
+  await expect(page.getByText(/音频不会上传/)).toBeVisible()
+  await page.getByRole('button', { name: '开始离线语音' }).click()
+  await expect(page.getByText(/改做选择题/)).toBeVisible()
+  await page.getByRole('button', { name: '改做选择题' }).click()
+  await expect(page.getByText(/答对后才能复活/)).toBeVisible()
+})
+
 test('a child can start the game from the portrait home screen', async ({
   page,
 }) => {
