@@ -675,7 +675,7 @@ test('a killed virus can drop a skill fragment that upgrades the current fight',
     scene.bullets.clear(true, true)
     scene.powerups.clear(true, true)
     const originalRandom = Math.random
-    Math.random = () => 0.05
+    Math.random = () => 0.049
     scene.spawnEnemy()
     scene.fireAntibodies()
     const enemy = scene.enemies.getChildren().find((item) => item.active)
@@ -783,7 +783,7 @@ test('skill fragments do not stack while one is still on screen', async ({
 
     scene.powerups.clear(true, true)
     const originalRandom = Math.random
-    Math.random = () => 0.05
+    Math.random = () => 0.049
     scene.maybeDropSkillFragment(120, 240)
     scene.maybeDropSkillFragment(270, 240)
     Math.random = originalRandom
@@ -909,6 +909,119 @@ test('split and pierce combine on every antibody hit', async ({ page }) => {
     childTextureKeys: ['antibody-split'],
     childCenterColor: [255, 159, 67, 255],
     childrenFollowMovement: true,
+  })
+})
+
+test('virus blast chains nearby kills but split antibodies do not trigger it', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: '开始第一章' }).click()
+
+  const result = await page.evaluate(() => {
+    const game = (
+      window as Window & {
+        __viralGame?: {
+          scene: { getScene: (key: string) => unknown }
+        }
+      }
+    ).__viralGame
+    if (!game) throw new Error('Missing development game handle')
+    type GameObject = {
+      active: boolean
+      x: number
+      y: number
+      getData: (key: string) => unknown
+      setData: (key: string, value: unknown) => void
+    }
+    const scene = game.scene.getScene('game') as {
+      state: {
+        cleaned: number
+        upgrades: Record<string, number>
+      }
+      enemies: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => GameObject[]
+      }
+      bullets: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+        getChildren: () => GameObject[]
+      }
+      powerups: {
+        clear: (removeFromScene: boolean, destroyChild: boolean) => void
+      }
+      spawnEnemy: () => void
+      fireAntibodies: () => void
+      onBulletHitsEnemy: (bullet: GameObject, enemy: GameObject) => void
+    }
+
+    scene.enemies.clear(true, true)
+    scene.bullets.clear(true, true)
+    scene.powerups.clear(true, true)
+    scene.state.upgrades.blast = 2
+    scene.state.upgrades.split = 0
+
+    scene.spawnEnemy()
+    scene.spawnEnemy()
+    scene.spawnEnemy()
+    const [first, nearby, far] = scene.enemies.getChildren()
+    first.x = 100
+    first.y = 260
+    nearby.x = 205
+    nearby.y = 260
+    far.x = 250
+    far.y = 420
+    first.setData('health', 1)
+    nearby.setData('health', 1)
+    far.setData('health', 1)
+
+    scene.fireAntibodies()
+    const parent = scene.bullets.getChildren().find((item) => item.active)
+    if (!parent) throw new Error('Missing parent antibody')
+    scene.onBulletHitsEnemy(parent, first)
+    const chainResult = {
+      firstActive: first.active,
+      nearbyActive: nearby.active,
+      farActive: far.active,
+      cleaned: scene.state.cleaned,
+    }
+
+    scene.enemies.clear(true, true)
+    scene.bullets.clear(true, true)
+    scene.spawnEnemy()
+    scene.spawnEnemy()
+    const [splitVictim, splitNeighbor] = scene.enemies.getChildren()
+    splitVictim.x = 100
+    splitVictim.y = 260
+    splitNeighbor.x = 120
+    splitNeighbor.y = 260
+    splitVictim.setData('health', 1)
+    splitNeighbor.setData('health', 1)
+
+    scene.fireAntibodies()
+    const splitChild = scene.bullets.getChildren().find((item) => item.active)
+    if (!splitChild) throw new Error('Missing split antibody')
+    splitChild.setData('splitChild', true)
+    scene.onBulletHitsEnemy(splitChild, splitVictim)
+
+    return {
+      chainResult,
+      splitVictimActive: splitVictim.active,
+      splitNeighborActive: splitNeighbor.active,
+      cleaned: scene.state.cleaned,
+    }
+  })
+
+  expect(result).toEqual({
+    chainResult: {
+      firstActive: false,
+      nearbyActive: false,
+      farActive: true,
+      cleaned: 2,
+    },
+    splitVictimActive: false,
+    splitNeighborActive: true,
+    cleaned: 3,
   })
 })
 

@@ -38,12 +38,12 @@ describe('campaign balance', () => {
 
   it('applies target, spawn, speed and score formulas with their caps', () => {
     expect(getLevelStats(1)).toMatchObject({
-      cleanTarget: 42,
+      cleanTarget: 43,
       spawnEvery: 920,
       scoreMultiplier: 1,
     })
     expect(getLevelStats(100)).toMatchObject({
-      cleanTarget: 78,
+      cleanTarget: 79,
       spawnEvery: 533,
       scoreMultiplier: 3.52,
     })

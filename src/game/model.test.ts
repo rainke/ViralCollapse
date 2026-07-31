@@ -15,6 +15,7 @@ import {
   getPlayerCombatStats,
   getProjectilePierceCount,
   getSplitProjectiles,
+  getVirusExplosionRadius,
   healPlayer,
   restartCurrentLevel,
   recordVirusCleaned,
@@ -106,10 +107,10 @@ describe('game state', () => {
     expect(state.score).toBe(25)
   })
 
-  it('drops a skill fragment for exactly the lowest 10% of rolls', () => {
+  it('drops a skill fragment for exactly the lowest 5% of rolls', () => {
     expect(shouldDropSkillFragment(0)).toBe(true)
-    expect(shouldDropSkillFragment(0.099_999)).toBe(true)
-    expect(shouldDropSkillFragment(0.1)).toBe(false)
+    expect(shouldDropSkillFragment(0.049_999)).toBe(true)
+    expect(shouldDropSkillFragment(0.05)).toBe(false)
     expect(shouldDropSkillFragment(0.999_999)).toBe(false)
   })
 
@@ -145,7 +146,7 @@ describe('game state', () => {
 })
 
 describe('upgrades', () => {
-  it('applies all eight routes with safe caps', () => {
+  it('applies all nine routes with their raised caps', () => {
     let state = createGameState()
 
     for (let index = 0; index < 8; index += 1) {
@@ -157,17 +158,19 @@ describe('upgrades', () => {
       state = applyUpgrade(state, 'guard')
       state = applyUpgrade(state, 'split')
       state = applyUpgrade(state, 'pierce')
+      state = applyUpgrade(state, 'blast')
     }
 
     expect(state.upgrades).toEqual({
-      damage: 5,
-      rapid: 5,
-      spread: 2,
-      health: 4,
-      critical: 4,
-      guard: 4,
-      split: 3,
-      pierce: 3,
+      damage: 6,
+      rapid: 6,
+      spread: 3,
+      health: 5,
+      critical: 5,
+      guard: 5,
+      split: 4,
+      pierce: 4,
+      blast: 4,
     })
   })
 
@@ -210,6 +213,21 @@ describe('upgrades', () => {
     expect(calculateBulletDamage(state, 0.001, false)).toBe(1)
   })
 
+  it('adds a five-shot pattern at the raised spread cap', () => {
+    const state = {
+      ...createGameState(),
+      upgrades: { ...createGameState().upgrades, spread: 3 },
+    }
+
+    expect(getBulletPattern(state)).toEqual([
+      { angle: -24, damageMultiplier: 0.5 },
+      { angle: -12, damageMultiplier: 0.5 },
+      { angle: 0, damageMultiplier: 0.5 },
+      { angle: 12, damageMultiplier: 0.5 },
+      { angle: 24, damageMultiplier: 0.5 },
+    ])
+  })
+
   it('creates more random-direction split antibodies at each level', () => {
     const randomValues = [0, 0.25, 0.5, 0.75]
     let randomIndex = 0
@@ -247,6 +265,17 @@ describe('upgrades', () => {
         upgrades: { ...state.upgrades, pierce: 3 },
       }),
     ).toBe(3)
+  })
+
+  it('increases virus explosion range at every blast level', () => {
+    const state = createGameState()
+
+    expect([0, 1, 2, 3, 4].map((blast) =>
+      getVirusExplosionRadius({
+        ...state,
+        upgrades: { ...state.upgrades, blast },
+      }),
+    )).toEqual([0, 85, 110, 135, 160])
   })
 
   it('raises max health and heals 20% when battle level advances', () => {
