@@ -693,11 +693,7 @@ element('#home-sound').addEventListener('click', () => setMuted(!sound.muted))
 element('#pause-sound').addEventListener('click', () => setMuted(!sound.muted))
 
 window.addEventListener('blur', () => {
-  if (destroyRevivalChallenge) {
-    hideModal()
-    scene().cancelRevivalChallenge()
-    return
-  }
+  if (destroyRevivalChallenge) return
   if (!home.classList.contains('is-hidden') || !modal.classList.contains('is-hidden')) {
     return
   }
