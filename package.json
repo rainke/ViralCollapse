@@ -19,6 +19,7 @@
   ],
   "license": "ISC",
   "dependencies": {
+    "hanzi-writer": "^3.7.3",
     "phaser": "^3.90.0"
   },
   "devDependencies": {

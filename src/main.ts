@@ -11,6 +11,14 @@ import {
   type UpgradeId,
 } from './game/model'
 import { getFactSpeech } from './game/speech'
+import {
+  HandwritingQuiz,
+  createHandwritingTask,
+  handwritingCharacters,
+  hanziWriterAdapter,
+  type HandwritingTask,
+  type QuizCallbacks,
+} from './game/revival/handwriting'
 import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
 import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
 import { SPEECH_TARGETS } from './game/revival/speech/policy'
@@ -131,6 +139,9 @@ const modalBody = element<HTMLElement>('#modal-body')
 const modalActions = element<HTMLElement>('#modal-actions')
 let gameReady = false
 let destroyRevivalChallenge: (() => void) | undefined
+const handwritingQuiz = new HandwritingQuiz(
+  window.__viralHandwritingAdapter ?? hanziWriterAdapter,
+)
 
 window.addEventListener('viral:ready', () => {
   gameReady = true
@@ -232,6 +243,7 @@ function showToast(message: string, duration = 1_700): void {
 function hideModal(): void {
   destroyRevivalChallenge?.()
   destroyRevivalChallenge = undefined
+  handwritingQuiz.destroy()
   modal.classList.add('is-hidden')
   modal.classList.remove('is-entering')
   modalActions.replaceChildren()
@@ -334,6 +346,7 @@ function showRevive(detail: {
   challenge: RevivalChallenge
 }): void {
   destroyRevivalChallenge?.()
+  handwritingQuiz.destroy()
   const challengeId = detail.challenge.id
   const word = revivalWords[
     (scene().getWorldLevel() + detail.challenge.id.length) % revivalWords.length
@@ -342,6 +355,7 @@ function showRevive(detail: {
   let speechSession: RevivalSpeechSession | undefined
   destroyRevivalChallenge = () => {
     active = false
+    handwritingQuiz.destroy()
     void speechSession?.dispose()
     speechSession = undefined
   }
@@ -373,16 +387,12 @@ function showRevive(detail: {
     showChoice()
   } else if (detail.challenge.type === 'writing') {
     modalTitle.textContent = '写出看到的汉字'
-    modalBody.textContent = `请输入这个字：${word.character}（可以重复尝试）`
-    const input = document.createElement('input')
-    input.className = 'challenge-input'
-    input.setAttribute('aria-label', '写汉字')
-    input.autocomplete = 'off'
-    const submit = button('检查答案', 'primary-button', () => {
-      if (input.value.trim() === word.character) succeed()
-      else retry('再看仔细一点，可以重新写。')
-    })
-    modalActions.replaceChildren(input, submit, status)
+    modalBody.textContent = '按照笔顺写完目标字，才能为小卫士充满能量。'
+    const task = {
+      ...createHandwritingTask(),
+      character: word.character,
+    }
+    showHandwritingTask(task, succeed)
   } else {
     modalTitle.textContent = '读出这个汉字'
     const target = SPEECH_TARGETS.find(
@@ -440,6 +450,75 @@ function showRevive(detail: {
     modalActions.replaceChildren(listen, fallback, status)
   }
   showModal()
+}
+
+function showChoiceFallback(
+  task: HandwritingTask,
+  onComplete: () => void,
+): void {
+  handwritingQuiz.destroy()
+  modalBody.textContent = '写字数据暂时没有到达，请选出刚才的目标字。'
+  const status = document.createElement('p')
+  status.className = 'handwriting-status'
+  status.setAttribute('role', 'status')
+  status.textContent = '请选择正确的字。'
+  const choices = [
+    task.character,
+    ...handwritingCharacters.filter((character) => character !== task.character).slice(0, 2),
+  ]
+  const choiceGrid = document.createElement('div')
+  choiceGrid.className = 'handwriting-choices'
+  for (const character of choices) {
+    choiceGrid.append(button(character, 'secondary-button', () => {
+      if (character === task.character) {
+        onComplete()
+      } else {
+        status.textContent = '再看一看目标字，然后重新选择吧。'
+      }
+    }))
+  }
+  modalActions.replaceChildren(status, choiceGrid)
+}
+
+function showHandwritingTask(
+  task: HandwritingTask,
+  onComplete: () => void,
+): void {
+  const prompt = document.createElement('p')
+  prompt.className = 'handwriting-prompt'
+  prompt.innerHTML = `目标字：<strong>${task.character}</strong>`
+  const canvas = document.createElement('div')
+  canvas.className = 'handwriting-canvas'
+  canvas.dataset.instanceId = task.instanceId
+  canvas.setAttribute('aria-label', `书写汉字${task.character}`)
+  const status = document.createElement('p')
+  status.className = 'handwriting-status'
+  status.setAttribute('role', 'status')
+  status.setAttribute('aria-live', 'polite')
+  status.textContent = '请从第一笔开始，完整写完这个字。'
+  let failed = false
+  const callbacks: QuizCallbacks = {
+    onComplete,
+    onMistake: () => {
+      canvas.classList.remove('has-mistake')
+      void canvas.offsetWidth
+      canvas.classList.add('has-mistake')
+      status.textContent = '这一笔差一点，再试一次吧！提示不会代替你写完。'
+    },
+    onLoadError: () => {
+      if (failed) return
+      failed = true
+      showChoiceFallback(task, onComplete)
+    },
+  }
+  const resetButton = button('重新书写', 'secondary-button handwriting-reset', () => {
+    status.textContent = '已清空，请重新完整写一遍。'
+    canvas.classList.remove('has-mistake')
+    canvas.replaceChildren()
+    handwritingQuiz.reset(canvas, task, callbacks)
+  })
+  modalActions.replaceChildren(prompt, canvas, resetButton, status)
+  handwritingQuiz.start(canvas, task, callbacks)
 }
 
 function showVictory(detail: {
