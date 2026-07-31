@@ -6,6 +6,7 @@ import {
   deserializeSave,
   serializeSave,
   type GameSave,
+  type RevivalChallenge,
   type RunSave,
   type UpgradeId,
 } from './game/model'
@@ -126,6 +127,7 @@ const modalTitle = element<HTMLElement>('#modal-title')
 const modalBody = element<HTMLElement>('#modal-body')
 const modalActions = element<HTMLElement>('#modal-actions')
 let gameReady = false
+let destroyRevivalChallenge: (() => void) | undefined
 
 window.addEventListener('viral:ready', () => {
   gameReady = true
@@ -225,6 +227,8 @@ function showToast(message: string, duration = 1_700): void {
 }
 
 function hideModal(): void {
+  destroyRevivalChallenge?.()
+  destroyRevivalChallenge = undefined
   modal.classList.add('is-hidden')
   modal.classList.remove('is-entering')
   modalActions.replaceChildren()
@@ -316,23 +320,114 @@ function showSkillFragment(detail: { options: UpgradeId[] }): void {
   showModal()
 }
 
-function showRevive(detail: { restart?: boolean } = {}): void {
+const revivalWords = [
+  { character: '手', reading: 'shou', options: ['手', '口', '目'] },
+  { character: '心', reading: 'xin', options: ['火', '心', '木'] },
+  { character: '水', reading: 'shui', options: ['山', '田', '水'] },
+]
+
+function showRevive(detail: {
+  restart?: boolean
+  challenge: RevivalChallenge
+}): void {
+  destroyRevivalChallenge?.()
+  const challengeId = detail.challenge.id
+  const word = revivalWords[
+    (scene().getWorldLevel() + detail.challenge.id.length) % revivalWords.length
+  ]
+  let active = true
+  let stream: MediaStream | undefined
+  let recognition: { stop: () => void } | undefined
+  destroyRevivalChallenge = () => {
+    active = false
+    recognition?.stop()
+    stream?.getTracks().forEach((track) => track.stop())
+  }
+  const succeed = () => {
+    if (!active || !scene().completeRevivalChallenge(challengeId, true)) return
+    if (!scene().revive(challengeId)) return
+    hideModal()
+  }
+  const status = document.createElement('p')
+  status.className = 'challenge-status'
+  status.setAttribute('aria-live', 'polite')
+  const retry = (message: string) => {
+    status.textContent = message
+  }
+  const showChoice = () => {
+    modalTitle.textContent = '选出正确的汉字'
+    modalBody.textContent = `请找到“${word.character}”字，答错可以再试。`
+    const choices = word.options.map((option) =>
+      button(option, 'challenge-button', () => {
+        if (option === word.character) succeed()
+        else retry('还差一点，再选一次吧！')
+      }),
+    )
+    modalActions.replaceChildren(...choices, status)
+  }
   modalIcon.textContent = '💙'
-  modalKicker.textContent = detail.restart ? '再试一次' : '免费续命'
-  modalTitle.textContent = detail.restart ? '重新挑战本关' : '小卫士充好电啦'
-  modalBody.textContent = detail.restart
-    ? '本关分数和进度会回到起点，章内升级都会保留。'
-    : '恢复 60% 生命，并获得 2.5 秒无敌！'
-  modalActions.replaceChildren(
-    button(
-      detail.restart ? '满血重开本关' : '原地继续！',
-      'primary-button',
-      () => {
-        hideModal()
-        scene().revive()
-      },
-    ),
-  )
+  modalKicker.textContent = detail.restart ? '完成任务后重试' : '完成任务后复活'
+  if (detail.challenge.type === 'choice') {
+    showChoice()
+  } else if (detail.challenge.type === 'writing') {
+    modalTitle.textContent = '写出看到的汉字'
+    modalBody.textContent = `请输入这个字：${word.character}（可以重复尝试）`
+    const input = document.createElement('input')
+    input.className = 'challenge-input'
+    input.setAttribute('aria-label', '写汉字')
+    input.autocomplete = 'off'
+    const submit = button('检查答案', 'primary-button', () => {
+      if (input.value.trim() === word.character) succeed()
+      else retry('再看仔细一点，可以重新写。')
+    })
+    modalActions.replaceChildren(input, submit, status)
+  } else {
+    modalTitle.textContent = '读出这个汉字'
+    modalBody.textContent = `请读出：${word.character}（可以重复尝试）`
+    const SpeechRecognition = (window as Window & {
+      SpeechRecognition?: new () => {
+        lang: string
+        start: () => void
+        stop: () => void
+        onresult: (event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void
+        onerror: () => void
+      }
+      webkitSpeechRecognition?: new () => {
+        lang: string
+        start: () => void
+        stop: () => void
+        onresult: (event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void
+        onerror: () => void
+      }
+    }).SpeechRecognition ?? (window as Window & { webkitSpeechRecognition?: new () => any }).webkitSpeechRecognition
+    if (!SpeechRecognition || !navigator.mediaDevices?.getUserMedia) {
+      retry('麦克风不可用，已切换到选择题。')
+      showChoice()
+    } else {
+      const listen = button('开始朗读', 'primary-button', async () => {
+        try {
+          stream ??= await navigator.mediaDevices.getUserMedia({ audio: true })
+          if (!active) return
+          const speech = new SpeechRecognition()
+          recognition = speech
+          speech.lang = 'zh-CN'
+          speech.onresult = (event: {
+            results: ArrayLike<{ 0: { transcript: string } }>
+          }) => {
+            const transcript = event.results[0][0].transcript
+            if (transcript.includes(word.character) || transcript.toLowerCase().includes(word.reading)) succeed()
+            else retry('没有听清，可以再读一次。')
+          }
+          speech.onerror = () => retry('没有听清，可以再读一次。')
+          speech.start()
+        } catch {
+          showChoice()
+          retry('麦克风不可用，已切换到选择题。')
+        }
+      })
+      modalActions.replaceChildren(listen, status)
+    }
+  }
   showModal()
 }
 
@@ -403,6 +498,8 @@ element('#resume-button').addEventListener('click', () => {
 })
 
 element('#restart-button').addEventListener('click', () => {
+  hideModal()
+  scene().cancelRevivalChallenge()
   pausePanel.classList.add('is-hidden')
   const chapterStart =
     Math.floor((nextWorldLevel() - 1) / 10) * 10 + 1
@@ -415,11 +512,25 @@ element('#home-sound').addEventListener('click', () => setMuted(!sound.muted))
 element('#pause-sound').addEventListener('click', () => setMuted(!sound.muted))
 
 window.addEventListener('blur', () => {
+  if (destroyRevivalChallenge) {
+    hideModal()
+    scene().cancelRevivalChallenge()
+    return
+  }
   if (!home.classList.contains('is-hidden') || !modal.classList.contains('is-hidden')) {
     return
   }
   if (scene().togglePause(true)) pausePanel.classList.remove('is-hidden')
 })
+
+window.addEventListener('pagehide', () => {
+  hideModal()
+  scene().cancelRevivalChallenge()
+})
+
+window.addEventListener('viral:reviveCancelled', ((event: CustomEvent) => {
+  if (destroyRevivalChallenge && event.detail.id) hideModal()
+}) as EventListener)
 
 window.addEventListener('viral:hud', ((event: CustomEvent) => {
   const detail = event.detail as {

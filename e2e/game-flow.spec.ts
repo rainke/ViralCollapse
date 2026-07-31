@@ -304,7 +304,7 @@ test('player death explodes before the revive dialog transitions in', async ({
   expect(deathState.deathSoundSpan).toBeCloseTo(0.32)
 
   const reviveHeading = page.getByRole('heading', {
-    name: '小卫士充好电啦',
+    name: '写出看到的汉字',
   })
   await expect(reviveHeading).toBeVisible({ timeout: 2_000 })
 
@@ -734,16 +734,25 @@ test('one free revive is followed by a full-health level restart', async ({
 
   await defeat()
   await expect(
-    page.getByRole('heading', { name: '小卫士充好电啦' }),
+    page.getByRole('heading', { name: '写出看到的汉字' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: '原地继续！' }).click()
+  await expect(page.locator('#health-value')).toHaveText('0/100')
+  await page.getByRole('button', { name: '检查答案' }).click()
+  await expect(page.locator('#health-value')).toHaveText('0/100')
+  await page.getByRole('textbox', { name: '写汉字' }).fill('心')
+  await page.getByRole('button', { name: '检查答案' }).click()
   await expect(page.locator('#health-value')).toHaveText('60/100')
 
   await defeat()
   await expect(
-    page.getByRole('heading', { name: '重新挑战本关' }),
+    page.getByRole('heading', { name: '读出这个汉字' }),
   ).toBeVisible()
-  await page.getByRole('button', { name: '满血重开本关' }).click()
+  await expect(page.locator('#health-value')).toHaveText('0/100')
+  await page.getByRole('button', { name: '开始朗读' }).click()
+  await expect(
+    page.getByRole('heading', { name: '选出正确的汉字' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: '心' }).click()
   await expect(page.locator('#health-value')).toHaveText('100/100')
   await expect(page.locator('#score')).toHaveText('0')
 })
