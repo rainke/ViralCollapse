@@ -23,6 +23,7 @@ test('a child can start the game from the portrait home screen', async ({
   await page.goto('/')
 
   await expect(page).toHaveTitle(/病毒大扫除/)
+  await expect(page.getByText('v1.0.0', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '开始第一章' })).toBeVisible()
   await expect(page.getByRole('button', { name: '开始第一章' })).toBeEnabled()
   await page.getByRole('button', { name: '开始第一章' }).click()
