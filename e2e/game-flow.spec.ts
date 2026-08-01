@@ -620,6 +620,88 @@ test('handwriting revive uses adapter completion, mistakes, fallback, and cleanu
   await expect(page.locator('#modal-actions')).toBeEmpty()
 })
 
+test('handwriting revive narrates the task and celebrates a completed character', async ({
+  page,
+}) => {
+  await page.addInitScript(() => {
+    const played: string[] = []
+    const players: TestAudio[] = []
+    const quizzes: Array<{ onComplete: () => void }> = []
+    class TestAudio extends EventTarget {
+      constructor(readonly src: string) {
+        super()
+      }
+
+      pause() {}
+
+      play() {
+        played.push(this.src)
+        players.push(this)
+        return Promise.resolve()
+      }
+    }
+    Object.defineProperty(window, 'Audio', {
+      configurable: true,
+      value: TestAudio,
+    })
+    Object.assign(window, {
+      __playedHandwritingAudio: played,
+      __handwritingAudioPlayers: players,
+      __viralHandwritingAdapter: {
+        create: () => ({
+          quiz: (callbacks: { onComplete: () => void }) => quizzes.push(callbacks),
+          cancelQuiz: () => {},
+        }),
+      },
+      __handwritingAudioQuizzes: quizzes,
+    })
+  })
+  await page.goto('/')
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('viral:revive', {
+      detail: {
+        restart: false,
+        challenge: { id: 'writing-audio', type: 'writing', status: 'pending' },
+      },
+    }))
+  })
+
+  await expect(page.getByRole('heading', { name: '写出看到的汉字' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedHandwritingAudio: string[] })
+      .__playedHandwritingAudio,
+  )).toEqual(['/assets/generated/speech/handwriting/instruction-water.wav'])
+
+  const finishCurrentAudio = async () => {
+    await page.evaluate(() => {
+      const testWindow = window as Window & {
+        __handwritingAudioPlayers: EventTarget[]
+      }
+      testWindow.__handwritingAudioPlayers.at(-1)?.dispatchEvent(new Event('ended'))
+    })
+  }
+  await finishCurrentAudio()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedHandwritingAudio: string[] })
+      .__playedHandwritingAudio,
+  )).toEqual([
+    '/assets/generated/speech/handwriting/instruction-water.wav',
+    '/assets/generated/speech/handwriting/introduction-water.wav',
+  ])
+
+  await finishCurrentAudio()
+  await page.evaluate(() => {
+    const testWindow = window as Window & {
+      __handwritingAudioQuizzes: Array<{ onComplete: () => void }>
+    }
+    testWindow.__handwritingAudioQuizzes[0]?.onComplete()
+  })
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedHandwritingAudio: string[] })
+      .__playedHandwritingAudio.at(-1),
+  )).toBe('/assets/generated/speech/handwriting/feedback-water.wav')
+})
+
 test('HUD shows numeric health and a seeded three-choice upgrade', async ({
   page,
 }) => {

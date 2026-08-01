@@ -29,6 +29,10 @@ import {
   getQuizFeedbackSpeech,
   getQuizSpeechSequence,
 } from './game/revival/quizSpeech'
+import {
+  getHandwritingFeedbackSpeech,
+  getHandwritingSpeechSequence,
+} from './game/revival/handwritingSpeech'
 import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
 import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
 import { SPEECH_TARGETS } from './game/revival/speech/policy'
@@ -675,8 +679,17 @@ function showHandwritingTask(
   status.setAttribute('aria-live', 'polite')
   status.textContent = '请从第一笔开始，完整写完这个字。'
   let failed = false
+  let completed = false
+  const completeHandwritingTask = () => {
+    if (completed) return
+    completed = true
+    resetButton.disabled = true
+    status.textContent = '太棒了！复活能量已充满。'
+    sound.playSpeech(getHandwritingFeedbackSpeech(task.character).asset)
+    window.setTimeout(onComplete, 450)
+  }
   const callbacks: QuizCallbacks = {
-    onComplete,
+    onComplete: completeHandwritingTask,
     onMistake: () => {
       canvas.classList.remove('has-mistake')
       void canvas.offsetWidth
@@ -686,7 +699,7 @@ function showHandwritingTask(
     onLoadError: () => {
       if (failed) return
       failed = true
-      showChoiceFallback(task, onComplete)
+      showChoiceFallback(task, completeHandwritingTask)
     },
   }
   const resetButton = button('重新书写', 'secondary-button handwriting-reset', () => {
@@ -697,6 +710,9 @@ function showHandwritingTask(
   })
   modalActions.replaceChildren(prompt, canvas, resetButton, status)
   handwritingQuiz.start(canvas, task, callbacks)
+  sound.playSpeechSequence(
+    getHandwritingSpeechSequence(task.character).map((speech) => speech.asset),
+  )
 }
 
 function showVictory(detail: {

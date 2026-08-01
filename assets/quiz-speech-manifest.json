@@ -228,5 +228,50 @@
     "id": "feedback:wrong",
     "text": "没关系，再想一想，你一定可以的。",
     "asset": "/assets/generated/speech/quiz/feedback-wrong.wav"
+  },
+  {
+    "id": "writing:hand:instruction",
+    "text": "书写挑战开始。请按照笔顺，完整写出“手”字。",
+    "asset": "/assets/generated/speech/handwriting/instruction-hand.wav"
+  },
+  {
+    "id": "writing:hand:introduction",
+    "text": "“手”字像张开的手掌。勤洗小手，帮身体挡住脏东西。",
+    "asset": "/assets/generated/speech/handwriting/introduction-hand.wav"
+  },
+  {
+    "id": "writing:hand:feedback",
+    "text": "太棒了！你完整写出了“手”字，复活能量充满啦！",
+    "asset": "/assets/generated/speech/handwriting/feedback-hand.wav"
+  },
+  {
+    "id": "writing:heart:instruction",
+    "text": "书写挑战开始。请按照笔顺，完整写出“心”字。",
+    "asset": "/assets/generated/speech/handwriting/instruction-heart.wav"
+  },
+  {
+    "id": "writing:heart:introduction",
+    "text": "“心”字是胸口里跳动的心脏，也装着关心和爱。",
+    "asset": "/assets/generated/speech/handwriting/introduction-heart.wav"
+  },
+  {
+    "id": "writing:heart:feedback",
+    "text": "太棒了！你完整写出了“心”字，复活能量充满啦！",
+    "asset": "/assets/generated/speech/handwriting/feedback-heart.wav"
+  },
+  {
+    "id": "writing:water:instruction",
+    "text": "书写挑战开始。请按照笔顺，完整写出“水”字。",
+    "asset": "/assets/generated/speech/handwriting/instruction-water.wav"
+  },
+  {
+    "id": "writing:water:introduction",
+    "text": "“水”字像水花向四周散开。每天喝水，身体更有精神。",
+    "asset": "/assets/generated/speech/handwriting/introduction-water.wav"
+  },
+  {
+    "id": "writing:water:feedback",
+    "text": "太棒了！你完整写出了“水”字，复活能量充满啦！",
+    "asset": "/assets/generated/speech/handwriting/feedback-water.wav"
   }
 ]
