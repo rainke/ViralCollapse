@@ -76,10 +76,8 @@ export function getLevelStats(level: number): {
   const { chapter, stage } = getLevelPosition(level)
   return {
     cleanTarget: 43 + 2 * (stage - 1) + 2 * (chapter - 1),
-    spawnEvery: Math.max(
-      520,
-      920 - 25 * (stage - 1) - 18 * (chapter - 1),
-    ),
+    spawnEvery:
+      Math.max(520, 920 - 25 * (stage - 1) - 18 * (chapter - 1)) / 2,
     scoreMultiplier:
       1 + 0.25 * (chapter - 1) + 0.03 * (stage - 1),
   }
