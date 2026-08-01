@@ -39,12 +39,12 @@ describe('campaign balance', () => {
   it('applies target, spawn, speed and score formulas with their caps', () => {
     expect(getLevelStats(1)).toMatchObject({
       cleanTarget: 43,
-      spawnEvery: 920,
+      spawnEvery: 460,
       scoreMultiplier: 1,
     })
     expect(getLevelStats(100)).toMatchObject({
       cleanTarget: 79,
-      spawnEvery: 533,
+      spawnEvery: 266.5,
       scoreMultiplier: 3.52,
     })
     expect(getEnemyStats(100, 'fast').speed).toBeCloseTo(228.69)
@@ -86,12 +86,12 @@ describe('campaign balance', () => {
     }
   })
 
-  it('keeps normal spawn windows near the intended combat duration', () => {
+  it('keeps normal spawn windows near the compressed combat duration', () => {
     for (const level of [1, 9, 41, 99]) {
       const stats = getLevelStats(level)
       const seconds = (stats.cleanTarget * stats.spawnEvery) / 1_000
-      expect(seconds).toBeGreaterThanOrEqual(38)
-      expect(seconds).toBeLessThanOrEqual(46)
+      expect(seconds).toBeGreaterThanOrEqual(19)
+      expect(seconds).toBeLessThanOrEqual(23)
     }
   })
 
