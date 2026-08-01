@@ -48,7 +48,7 @@ test('microphone permission blur keeps the speech task open', async ({ page }) =
   await expect(page.getByText('点击麦克风，说出这个字')).toBeVisible()
   await expect.poll(() => page.evaluate(() =>
     (window as Window & { __playedReadingAudio: string[] }).__playedReadingAudio,
-  )).toEqual(['/assets/generated/speech/reading/instruction-heart.wav'])
+  )).toEqual(['/assets/generated/speech/reading/instruction.wav'])
   await expect(page.getByRole('button', { name: '开始录音' })).toBeVisible()
   await expect(page.getByRole('button', { name: '改做选择题' })).toHaveCount(0)
 

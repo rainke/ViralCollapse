@@ -5,19 +5,18 @@ import {
 } from './readingSpeech'
 
 describe('generated reading speech', () => {
-  it('introduces the target character and microphone action', () => {
-    expect(getReadingSpeech('手')).toEqual({
-      id: 'reading:hand:instruction',
-      text: '请读出“手”字。点击麦克风开始录音。',
-      asset: '/assets/generated/speech/reading/instruction-hand.wav',
+  it('guides the child without saying the target character', () => {
+    const speech = getReadingSpeech()
+
+    expect(speech).toEqual({
+      id: 'reading:instruction',
+      text: '请读出屏幕上的汉字。点击麦克风开始录音。',
+      asset: '/assets/generated/speech/reading/instruction.wav',
     })
-    expect(getReadingSpeech('心').id).toBe('reading:heart:instruction')
-    expect(getReadingSpeech('水').id).toBe('reading:water:instruction')
+    expect(speech.text).not.toMatch(/[手心水]/)
   })
 
-  it('uses a unique generated asset for every reading prompt', () => {
-    const assets = READING_SPEECH.map((speech) => speech.asset)
-
-    expect(new Set(assets).size).toBe(assets.length)
+  it('uses one reusable prompt for every reading challenge', () => {
+    expect(READING_SPEECH).toHaveLength(1)
   })
 })
