@@ -322,6 +322,8 @@ function hideModal(): void {
   destroyRevivalChallenge?.()
   destroyRevivalChallenge = undefined
   handwritingQuiz.destroy()
+  modal.classList.remove('speech-revival-modal')
+  modalTitle.classList.remove('speech-character')
   modal.classList.add('is-hidden')
   modal.classList.remove('is-entering')
   modalActions.replaceChildren()
@@ -426,6 +428,8 @@ function showRevive(detail: {
 }): void {
   destroyRevivalChallenge?.()
   handwritingQuiz.destroy()
+  modal.classList.remove('speech-revival-modal')
+  modalTitle.classList.remove('speech-character')
   const challengeId = detail.challenge.id
   const word = revivalWords[
     (scene().getWorldLevel() + detail.challenge.id.length) % revivalWords.length
@@ -450,6 +454,8 @@ function showRevive(detail: {
     status.textContent = message
   }
   const showHealthQuiz = () => {
+    modal.classList.remove('speech-revival-modal')
+    modalTitle.classList.remove('speech-character')
     modalTitle.textContent = '健康知识小问答'
     const worldLevel = save.run?.worldLevel ?? nextWorldLevel()
     const question = selectQuizQuestion(worldLevel, previousReviveQuestionId)
@@ -476,26 +482,33 @@ function showRevive(detail: {
     }
     showHandwritingTask(task, succeed)
   } else {
-    modalTitle.textContent = '读出这个汉字'
+    modal.classList.add('speech-revival-modal')
+    modalTitle.classList.add('speech-character')
+    modalTitle.textContent = word.character
     const target = SPEECH_TARGETS.find(
       (item) => item.character === word.character,
     )
-    modalBody.textContent = `请读出：${word.character}。麦克风只用于本机离线识别，音频不会上传；点开始后才会请求权限。`
+    modalBody.textContent = '点击麦克风，说出这个字'
     const fallback = button('改做选择题', 'secondary-button', () => {
       void speechSession?.dispose()
       speechSession = undefined
       showHealthQuiz()
     })
-    const listen = button('开始离线语音', 'primary-button', () => {
+    const showFallback = () => {
+      modalActions.replaceChildren(fallback, status)
+    }
+    const listen = button('🎙️', 'speech-record-button', () => {
       if (
         !target ||
         !navigator.mediaDevices?.getUserMedia ||
         typeof Worker === 'undefined'
       ) {
-        showHealthQuiz()
+        retry('语音不可用，请改做选择题。')
+        showFallback()
         return
       }
       listen.disabled = true
+      listen.setAttribute('aria-label', '正在录音')
       speechSession = new RevivalSpeechSession(
         new SherpaWasmRecognizer(),
         target,
@@ -509,9 +522,10 @@ function showRevive(detail: {
           }
           retry(labels[state])
           if (state === 'success') succeed()
-          if (['incorrect', 'timeout', 'silent', 'low-confidence', 'error'].includes(state)) {
+          if (state === 'error') showFallback()
+          if (['incorrect', 'timeout', 'silent', 'low-confidence'].includes(state)) {
             listen.disabled = false
-            listen.textContent = '重试语音'
+            listen.setAttribute('aria-label', '重新录音')
           }
         },
         8_000,
@@ -524,10 +538,11 @@ function showRevive(detail: {
       )
       void speechSession.start().catch(() => {
         retry('权限被拒绝或模型加载失败，请改做选择题。')
-        listen.disabled = false
+        showFallback()
       })
     })
-    modalActions.replaceChildren(listen, fallback, status)
+    listen.setAttribute('aria-label', '开始录音')
+    modalActions.replaceChildren(listen, status)
   }
   showModal()
 }

@@ -1309,9 +1309,18 @@ test('one free revive is followed by a full-health level restart', async ({
 
   await defeat()
   await expect(
-    page.getByRole('heading', { name: '读出这个汉字' }),
+    page.locator('.speech-character'),
   ).toBeVisible()
   await expect(page.locator('#health-value')).toHaveText('0/100')
+  await page.evaluate(() => {
+    Object.defineProperty(navigator, 'mediaDevices', {
+      value: {
+        getUserMedia: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')),
+      },
+    })
+  })
+  await page.getByRole('button', { name: '开始录音' }).click()
+  await expect(page.getByRole('button', { name: '改做选择题' })).toBeVisible()
   await page.getByRole('button', { name: '改做选择题' }).click()
   await expect(
     page.getByRole('heading', { name: '健康知识小问答' }),

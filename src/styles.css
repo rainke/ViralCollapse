@@ -578,6 +578,62 @@ button:focus-visible {
   gap: 10px;
 }
 
+.speech-revival-modal .modal-card {
+  width: min(100%, 320px);
+  padding: 34px 22px 30px;
+}
+
+.speech-revival-modal .modal-icon,
+.speech-revival-modal .modal-kicker {
+  display: none;
+}
+
+.speech-revival-modal .modal-card h2 {
+  margin: 0;
+  color: #35275e;
+  font-size: clamp(110px, 34vw, 140px);
+  line-height: 0.9;
+}
+
+.speech-revival-modal .modal-card > p:not(.modal-kicker) {
+  margin: 22px auto 14px;
+  color: #615786;
+  font-size: 16px;
+}
+
+.speech-revival-modal .modal-actions {
+  justify-items: center;
+}
+
+.speech-character {
+  font-variant-east-asian: traditional;
+}
+
+.speech-record-button {
+  display: grid;
+  width: 84px;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 38px;
+  background: linear-gradient(180deg, #7660de, #4e3aa8);
+  box-shadow: 0 7px 0 #352678, 0 15px 28px rgb(57 41 120 / 28%);
+  cursor: pointer;
+}
+
+.speech-record-button:active {
+  box-shadow: 0 3px 0 #352678;
+  transform: translateY(4px);
+}
+
+.speech-record-button:disabled {
+  cursor: wait;
+  filter: grayscale(0.5);
+  opacity: 0.65;
+}
+
 .handwriting-prompt,
 .handwriting-status {
   margin: 0;
