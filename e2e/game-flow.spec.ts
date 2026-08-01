@@ -154,8 +154,8 @@ test('choice questions play generated audio and label answers for pre-readers', 
   await finishCurrentAudio()
   for (let index = 0; index < 3; index += 1) {
     await expect(options.nth(index)).toBeEnabled()
+    await expect(options.nth(index)).not.toHaveClass(/is-speaking/)
   }
-  await expect(options).not.toHaveClass(/is-speaking/)
 
   const played = await page.evaluate(() =>
     (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio,

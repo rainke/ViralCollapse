@@ -35,6 +35,12 @@ import { SPEECH_TARGETS } from './game/revival/speech/policy'
 
 const SAVE_KEY = 'viral-collapse-save'
 
+interface SpeechSequenceCallbacks {
+  onStart?: (asset: string, index: number) => void
+  onEnd?: (asset: string, index: number) => void
+  onComplete?: () => void
+}
+
 function element<T extends HTMLElement>(selector: string): T {
   const found = document.querySelector<T>(selector)
   if (!found) throw new Error(`Missing required element: ${selector}`)
@@ -46,6 +52,7 @@ class SoundSynth {
   private speech?: HTMLAudioElement
   private speechQueue: string[] = []
   private speechSequence = 0
+  private speechComplete?: () => void
   muted = false
 
   unlock(): void {
@@ -124,21 +131,41 @@ class SoundSynth {
     this.playSpeechSequence([asset])
   }
 
-  playSpeechSequence(assets: readonly string[]): void {
-    if (this.muted || assets.length === 0) return
+  playSpeechSequence(
+    assets: readonly string[],
+    callbacks?: SpeechSequenceCallbacks,
+  ): void {
     this.stopSpeech()
+    if (this.muted || assets.length === 0) {
+      callbacks?.onComplete?.()
+      return
+    }
     this.speechQueue = [...assets]
     const sequence = this.speechSequence
+    this.speechComplete = callbacks?.onComplete
+    let index = 0
     const playNext = () => {
       if (this.muted || sequence !== this.speechSequence) return
       const asset = this.speechQueue.shift()
       if (!asset) {
         this.speech = undefined
+        const complete = this.speechComplete
+        this.speechComplete = undefined
+        complete?.()
         return
       }
       const speech = new Audio(asset)
       this.speech = speech
-      const advance = () => playNext()
+      const speechIndex = index
+      index += 1
+      callbacks?.onStart?.(asset, speechIndex)
+      let advanced = false
+      const advance = () => {
+        if (advanced || sequence !== this.speechSequence) return
+        advanced = true
+        callbacks?.onEnd?.(asset, speechIndex)
+        playNext()
+      }
       speech.addEventListener('ended', advance, { once: true })
       speech.addEventListener('error', advance, { once: true })
       void speech.play().catch(advance)
@@ -146,17 +173,20 @@ class SoundSynth {
     playNext()
   }
 
-  private stopSpeech(): void {
+  private stopSpeech(complete = false): void {
     this.speechSequence += 1
     this.speechQueue = []
     this.speech?.pause()
     this.speech = undefined
+    const onComplete = this.speechComplete
+    this.speechComplete = undefined
+    if (complete) onComplete?.()
   }
 
   setMuted(muted: boolean): void {
     this.muted = muted
     if (!muted) return
-    this.stopSpeech()
+    this.stopSpeech(true)
   }
 }
 
@@ -578,8 +608,25 @@ function renderReviveQuestion(
   })
 
   modalActions.replaceChildren(group, feedback)
+  group.disabled = true
+  const speechSequence = getQuizSpeechSequence(question)
   sound.playSpeechSequence(
-    getQuizSpeechSequence(question).map((speech) => speech.asset),
+    speechSequence.map((speech) => speech.asset),
+    {
+      onStart: (_asset, index) => {
+        if (index > 0 && index % 2 === 1) {
+          optionButtons[(index - 1) / 2]?.classList.add('is-speaking')
+        }
+      },
+      onEnd: (_asset, index) => {
+        if (index > 0 && index % 2 === 0) {
+          optionButtons[index / 2 - 1]?.classList.remove('is-speaking')
+        }
+      },
+      onComplete: () => {
+        group.disabled = false
+      },
+    },
   )
 }
 

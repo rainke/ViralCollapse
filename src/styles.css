@@ -690,6 +690,10 @@ button:focus-visible {
   opacity: 0.58;
 }
 
+.quiz-option.is-speaking {
+  animation: quiz-option-speaking 620ms ease-in-out infinite alternate;
+}
+
 .quiz-option.is-correct {
   border-color: #3fa66d;
   color: #175c38;
@@ -829,6 +833,15 @@ button:focus-visible {
     border-color: #ff765f;
     background-color: #fff1ed;
     transform: translateX(3px);
+  }
+}
+
+@keyframes quiz-option-speaking {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.035);
   }
 }
 
