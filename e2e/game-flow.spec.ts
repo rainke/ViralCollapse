@@ -26,11 +26,15 @@ test('microphone permission blur keeps the speech task open', async ({ page }) =
     }))
   })
 
-  await page.getByRole('button', { name: '开始离线语音' }).click()
+  await expect(page.locator('.speech-character')).toHaveText('心')
+  await expect(page.getByText('点击麦克风，说出这个字')).toBeVisible()
+  await expect(page.getByRole('button', { name: '开始录音' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '改做选择题' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: '开始录音' }).click()
 
   await expect(page.locator('.challenge-status')).toHaveText('正在听…')
-  await expect(page.getByRole('heading', { name: '读出这个汉字' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '改做选择题' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '心' })).toBeVisible()
 })
 
 test('permission denial offers a required fallback task', async ({ page }) => {
@@ -48,8 +52,8 @@ test('permission denial offers a required fallback task', async ({ page }) => {
       },
     }))
   })
-  await expect(page.getByText(/音频不会上传/)).toBeVisible()
-  await page.getByRole('button', { name: '开始离线语音' }).click()
+  await expect(page.getByText('点击麦克风，说出这个字')).toBeVisible()
+  await page.getByRole('button', { name: '开始录音' }).click()
   await expect(page.getByRole('button', { name: '改做选择题' })).toBeVisible()
   await page.getByRole('button', { name: '改做选择题' }).click()
   await expect(page.getByRole('heading', { name: '健康知识小问答' })).toBeVisible()
