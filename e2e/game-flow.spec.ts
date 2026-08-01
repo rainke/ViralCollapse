@@ -2,6 +2,24 @@ import { expect, test } from '@playwright/test'
 
 test('microphone permission blur keeps the speech task open', async ({ page }) => {
   await page.addInitScript(() => {
+    const played: string[] = []
+    class TestAudio extends EventTarget {
+      constructor(readonly src: string) {
+        super()
+      }
+
+      pause() {}
+
+      play() {
+        played.push(this.src)
+        return Promise.resolve()
+      }
+    }
+    Object.defineProperty(window, 'Audio', {
+      configurable: true,
+      value: TestAudio,
+    })
+    Object.assign(window, { __playedReadingAudio: played })
     Object.defineProperty(navigator, 'mediaDevices', {
       value: {
         getUserMedia: async () => {
@@ -28,6 +46,9 @@ test('microphone permission blur keeps the speech task open', async ({ page }) =
 
   await expect(page.locator('.speech-character')).toHaveText('心')
   await expect(page.getByText('点击麦克风，说出这个字')).toBeVisible()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedReadingAudio: string[] }).__playedReadingAudio,
+  )).toEqual(['/assets/generated/speech/reading/instruction-heart.wav'])
   await expect(page.getByRole('button', { name: '开始录音' })).toBeVisible()
   await expect(page.getByRole('button', { name: '改做选择题' })).toHaveCount(0)
 
