@@ -62,6 +62,7 @@ test('choice questions play generated audio and label answers for pre-readers', 
   await page.addInitScript(() => {
     const played: string[] = []
     const synthesized: string[] = []
+    const players: TestAudio[] = []
     class TestAudio extends EventTarget {
       constructor(readonly src: string) {
         super()
@@ -71,7 +72,7 @@ test('choice questions play generated audio and label answers for pre-readers', 
 
       play() {
         played.push(this.src)
-        queueMicrotask(() => this.dispatchEvent(new Event('ended')))
+        players.push(this)
         return Promise.resolve()
       }
     }
@@ -89,6 +90,7 @@ test('choice questions play generated audio and label answers for pre-readers', 
     Object.assign(window, {
       __playedQuizAudio: played,
       __synthesizedQuizText: synthesized,
+      __quizAudioPlayers: players,
     })
   })
   await page.goto('/')
@@ -103,12 +105,58 @@ test('choice questions play generated audio and label answers for pre-readers', 
 
   const options = page.locator('.quiz-option')
   await expect(options).toHaveText([/^A/, /^B/, /^C/])
+  for (let index = 0; index < 3; index += 1) {
+    await expect(options.nth(index)).toBeDisabled()
+  }
   const optionIds = await options.evaluateAll((buttons) =>
     buttons.map((item) => (item as HTMLElement).dataset.optionId),
   )
   await expect.poll(() => page.evaluate(() =>
     (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.length,
-  )).toBe(7)
+  )).toBe(1)
+
+  const finishCurrentAudio = async () => {
+    await page.evaluate(() => {
+      const testWindow = window as Window & {
+        __quizAudioPlayers: EventTarget[]
+      }
+      testWindow.__quizAudioPlayers.at(-1)?.dispatchEvent(new Event('ended'))
+    })
+  }
+
+  await finishCurrentAudio()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.length,
+  )).toBe(2)
+  await expect(options.nth(0)).toHaveClass(/is-speaking/)
+
+  await finishCurrentAudio()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.length,
+  )).toBe(3)
+  await expect(options.nth(0)).toHaveClass(/is-speaking/)
+
+  await finishCurrentAudio()
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.length,
+  )).toBe(4)
+  await expect(options.nth(0)).not.toHaveClass(/is-speaking/)
+  await expect(options.nth(1)).toHaveClass(/is-speaking/)
+
+  for (let index = 4; index < 7; index += 1) {
+    await finishCurrentAudio()
+    if (index < 6) {
+      await expect.poll(() => page.evaluate(() =>
+        (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio.length,
+      )).toBe(index + 1)
+    }
+  }
+  await finishCurrentAudio()
+  for (let index = 0; index < 3; index += 1) {
+    await expect(options.nth(index)).toBeEnabled()
+  }
+  await expect(options).not.toHaveClass(/is-speaking/)
+
   const played = await page.evaluate(() =>
     (window as Window & { __playedQuizAudio: string[] }).__playedQuizAudio,
   )
