@@ -33,6 +33,7 @@ import {
   getHandwritingFeedbackSpeech,
   getHandwritingSpeechSequence,
 } from './game/revival/handwritingSpeech'
+import { getReadingSpeech } from './game/revival/readingSpeech'
 import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
 import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
 import { SPEECH_TARGETS } from './game/revival/speech/policy'
@@ -543,6 +544,7 @@ function showRevive(detail: {
     })
     listen.setAttribute('aria-label', '开始录音')
     modalActions.replaceChildren(listen, status)
+    sound.playSpeech(getReadingSpeech().asset)
   }
   showModal()
 }
