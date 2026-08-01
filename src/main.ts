@@ -328,6 +328,7 @@ const upgrades: Record<UpgradeId, {
   guard: { id: 'guard', icon: '🛡️', title: '坚固护盾', caption: '伤害 -8%' },
   split: { id: 'split', icon: '✨', title: '抗体分裂', caption: '命中产生更多子抗体' },
   pierce: { id: 'pierce', icon: '🧬', title: '抗体穿透', caption: '穿透更多病毒' },
+  blast: { id: 'blast', icon: '💣', title: '病毒爆破', caption: '击杀引爆附近病毒' },
 }
 
 function createUpgradeGrid(options: UpgradeId[]): HTMLElement {

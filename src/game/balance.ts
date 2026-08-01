@@ -75,7 +75,7 @@ export function getLevelStats(level: number): {
 } {
   const { chapter, stage } = getLevelPosition(level)
   return {
-    cleanTarget: 42 + 2 * (stage - 1) + 2 * (chapter - 1),
+    cleanTarget: 43 + 2 * (stage - 1) + 2 * (chapter - 1),
     spawnEvery: Math.max(
       520,
       920 - 25 * (stage - 1) - 18 * (chapter - 1),
@@ -104,9 +104,9 @@ export function getPlayerStats(
     maxHealth: roundTo5(
       100 * getDefenseMultiplier(level) * (1 + healthLevel * 0.15),
     ),
-    criticalChance: Math.min(0.4, (upgrades.critical ?? 0) * 0.1),
+    criticalChance: Math.min(0.5, (upgrades.critical ?? 0) * 0.1),
     criticalMultiplier: 1.75,
-    damageReduction: Math.min(0.32, (upgrades.guard ?? 0) * 0.08),
+    damageReduction: Math.min(0.4, (upgrades.guard ?? 0) * 0.08),
   }
 }
 

@@ -27,6 +27,7 @@ import {
   getPlayerCombatStats,
   getProjectilePierceCount,
   getSplitProjectiles,
+  getVirusExplosionRadius,
   healPlayer,
   recordVirusCleaned,
   restartCurrentLevel,
@@ -581,18 +582,61 @@ export class GameScene extends Phaser.Scene {
       return
     }
 
+    this.cleanVirus(enemy, bullet.getData('splitChild') !== true)
+  }
+
+  private cleanVirus(enemy: EnemySprite, canExplode: boolean): void {
     const points = enemy.getData('points') as number
     const shouldSplit = enemy.enemyType === 'splitter'
-    this.state = recordVirusCleaned(this.state, points)
     const x = enemy.x
     const y = enemy.y
+    this.state = recordVirusCleaned(this.state, points)
     this.disableObject(enemy)
     this.cleanBurst(x, y)
     if (shouldSplit) this.spawnSplitFragments(x, y)
     this.maybeDropPowerup(x, y)
     this.maybeDropSkillFragment(x, y)
+
+    const radius = canExplode ? getVirusExplosionRadius(this.state) : 0
+    if (radius > 0) this.explodeVirus(x, y, radius)
     this.emitHud()
     this.emitEvent('viral:sound', { kind: 'clean' })
+  }
+
+  private explodeVirus(x: number, y: number, radius: number): void {
+    const ring = this.add
+      .circle(x, y, radius, 0xff9f43, 0.14)
+      .setStrokeStyle(3, 0xffd166, 0.9)
+      .setDepth(2)
+      .setScale(0.2)
+    this.tweens.add({
+      targets: ring,
+      scale: 1,
+      alpha: 0,
+      duration: 220,
+      onComplete: () => ring.destroy(),
+    })
+
+    const damage = getPlayerCombatStats(this.state).damage
+    const nearby = this.enemies.getChildren().slice() as EnemySprite[]
+    for (const target of nearby) {
+      if (!target.active || target === this.boss) continue
+      if (Phaser.Math.Distance.Between(x, y, target.x, target.y) > radius) {
+        continue
+      }
+      const health = (target.getData('health') as number) - damage
+      target.setData('health', health)
+      if (health <= 0) {
+        this.cleanVirus(target, true)
+      } else {
+        this.tweens.add({
+          targets: target,
+          alpha: 0.45,
+          yoyo: true,
+          duration: 70,
+        })
+      }
+    }
   }
 
   private hitBoss(

@@ -309,15 +309,25 @@ describe('upgrades', () => {
 
     expect(first).toEqual(again)
     expect(new Set(first).size).toBe(3)
-    expect(first.some((id) => ['damage', 'rapid', 'spread', 'critical'].includes(id))).toBe(true)
+    expect(first.some((id) =>
+      [
+        'damage',
+        'rapid',
+        'spread',
+        'critical',
+        'split',
+        'pierce',
+        'blast',
+      ].includes(id),
+    )).toBe(true)
     expect(first.some((id) => ['health', 'guard'].includes(id))).toBe(true)
   })
 
   it('never offers capped routes', () => {
     const upgrades = {
       ...createGameState().upgrades,
-      damage: 5,
-      health: 4,
+      damage: 6,
+      health: 5,
     }
     const options = chooseUpgradeOptions(upgrades, 8)
 

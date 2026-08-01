@@ -46,6 +46,7 @@ export type UpgradeId =
   | 'guard'
   | 'split'
   | 'pierce'
+  | 'blast'
 
 export type UpgradeState = Record<UpgradeId, number>
 
@@ -101,14 +102,15 @@ const DEFAULT_SAVE: GameSave = {
 }
 
 export const UPGRADE_CAPS: Record<UpgradeId, number> = {
-  damage: 5,
-  rapid: 5,
-  spread: 2,
-  health: 4,
-  critical: 4,
-  guard: 4,
-  split: 3,
-  pierce: 3,
+  damage: 6,
+  rapid: 6,
+  spread: 3,
+  health: 5,
+  critical: 5,
+  guard: 5,
+  split: 4,
+  pierce: 4,
+  blast: 4,
 }
 
 const EMPTY_UPGRADES: UpgradeState = {
@@ -120,6 +122,7 @@ const EMPTY_UPGRADES: UpgradeState = {
   guard: 0,
   split: 0,
   pierce: 0,
+  blast: 0,
 }
 
 export function createGameState(
@@ -187,7 +190,7 @@ export function recordVirusCleaned(
 }
 
 export function shouldDropSkillFragment(randomValue: number): boolean {
-  return randomValue < 0.1
+  return randomValue < 0.05
 }
 
 export function revivePlayer(state: GameState, now: number): GameState {
@@ -267,6 +270,12 @@ export function getFireInterval(state: GameState, now = 0): number {
 export function getBulletPattern(
   state: GameState,
 ): Array<{ angle: number; damageMultiplier: number }> {
+  if (state.upgrades.spread >= 3) {
+    return [-24, -12, 0, 12, 24].map((angle) => ({
+      angle,
+      damageMultiplier: 0.5,
+    }))
+  }
   if (state.upgrades.spread === 1) {
     return [
       { angle: -9, damageMultiplier: 0.7 },
@@ -317,6 +326,11 @@ export function getProjectilePierceCount(state: GameState): number {
   return state.upgrades.pierce
 }
 
+export function getVirusExplosionRadius(state: GameState): number {
+  const level = state.upgrades.blast
+  return level === 0 ? 0 : 60 + level * 25
+}
+
 function seededOrder(seed: number): () => number {
   let value = seed >>> 0
   return () => {
@@ -353,6 +367,7 @@ export function chooseUpgradeOptions(
       'critical',
       'split',
       'pierce',
+      'blast',
     ].includes(id),
   )
   const defense = available.filter((id) =>
