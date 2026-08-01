@@ -90,7 +90,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.image('micro-world', '/assets/generated/micro-world.png')
+    this.load.image('micro-world', '/assets/generated/micro-world-scroll-v2.png')
     this.load.image('guardian', '/assets/generated/guardian.png')
     this.load.image('virus-blue', '/assets/generated/virus-blue.png')
     this.load.image('virus-fast', '/assets/generated/virus-fast.png')
@@ -108,10 +108,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.background = this.add
-      .tileSprite(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 'micro-world')
-      .setTileScale(0.55)
-      .setTint(getLevel(1).tint)
+    this.createBackground()
 
     this.add
       .rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x171147, 0.18)
@@ -243,6 +240,13 @@ export class GameScene extends Phaser.Scene {
         this.completeLevel()
       }
     }
+  }
+
+  private createBackground(): void {
+    this.background = this.add
+      .tileSprite(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 'micro-world')
+      .setTileScale(0.66)
+      .setTint(getLevel(1).tint)
   }
 
   togglePause(force?: boolean): boolean {

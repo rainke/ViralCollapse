@@ -29,6 +29,23 @@ light particles. Keep a clear, uncluttered flight lane through the center.
 lavender, cyan and soft golden highlights. No characters or UI.
 ```
 
+### Micro-world seamless scrolling background v2
+
+```text
+Use case: stylized-concept
+Asset type: vertically seamless scrolling background tile for a children’s mobile portrait shooter
+Primary request: Create one polished, soft 3D toy-animation microscopic immune-system flight-path background that tiles perfectly and invisibly when repeated vertically.
+Scene/backdrop: a friendly glowing nasal-body pathway: soft coral and peach tissue banks framing a clear central flight lane, translucent bubble-like cells, tiny drifting golden and lavender light particles. Decorative forms remain along the side banks; the center stays calm and readable for enemies and bullets.
+Style/medium: premium children’s mobile game art, rounded clay and soft-plastic forms, soft 3D toy rendering, matching a warm magical pink, peach, lavender, cyan, and golden palette.
+Composition/framing: portrait 9:16. This is a repeat tile, not a standalone illustration. The top edge and bottom edge must join into one continuous scene with no visible horizon, lighting shift, band, or compositional jump when stacked. At both the top and bottom 12% of the image, use only the same gentle continuation of the central pathway, small softly cropped tissue forms at the far side edges, and sparse tiny particles; do not place large bubbles, organism shapes, focal objects, or sharp outlines touching either horizontal edge. Make the side tissue contours and central path flow continuously across the top/bottom join.
+Lighting/mood: bright, warm, magical, safe and cheerful, with even lighting from top to bottom.
+Constraints: no characters, no virus sprites, no UI, no text, no logo, no watermark, no border, no frame, no panels, no sharp horizontal bands, no horizon, no shadow seam, and no obvious repeated motif.
+```
+
+The runtime texture is vertically phase-shifted and softly edge-blended from
+this untouched source so its first and last rows form a continuous scrolling
+loop.
+
 ### Immune guardian
 
 ```text
