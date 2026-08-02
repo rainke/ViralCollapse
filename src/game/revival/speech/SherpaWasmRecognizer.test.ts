@@ -21,9 +21,14 @@ afterEach(() => vi.unstubAllGlobals())
 describe('SherpaWasmRecognizer', () => {
   it('loads the installed classic sherpa runtime worker', async () => {
     vi.stubGlobal('Worker', FakeWorker)
+    const getUserMedia = vi.fn(async () => ({ getTracks: () => [] } as unknown as MediaStream))
+    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } })
     const recognizer = new SherpaWasmRecognizer()
     const loading = recognizer.load({ onResult: vi.fn() })
 
+    expect(getUserMedia).toHaveBeenCalledWith({
+      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+    })
     expect(FakeWorker.instance?.scriptUrl).toBe('/speech/sherpa-onnx/recognizer.worker.js')
     expect(FakeWorker.instance?.options).toBeUndefined()
 
