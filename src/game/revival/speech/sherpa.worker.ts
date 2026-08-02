@@ -1,5 +1,7 @@
 /// <reference lib="webworker" />
 
+import { getSherpaModelFiles } from './sherpaManifest'
+
 const scope = self as DedicatedWorkerGlobalScope
 let loaded = false
 
@@ -22,13 +24,14 @@ scope.onmessage = async ({ data }) => {
       const response = await fetch('/speech/sherpa-onnx/manifest.json')
       if (!response.ok) throw new Error('离线语音模型不可用')
       const manifest = await response.json() as { files: string[] }
+      const files = getSherpaModelFiles(manifest.files)
       let loadedFiles = 0
-      for (const file of manifest.files) {
+      for (const file of files) {
         const asset = await fetch(`/speech/sherpa-onnx/${file}`)
         if (!asset.ok) throw new Error(`无法下载 ${file}`)
         await asset.arrayBuffer()
         loadedFiles += 1
-        scope.postMessage({ type: 'progress', phase: 'downloading', loaded: loadedFiles, total: manifest.files.length })
+        scope.postMessage({ type: 'progress', phase: 'downloading', loaded: loadedFiles, total: files.length })
       }
       // The audited sherpa-onnx runtime must register `createRecognizer` here.
       scope.postMessage({ type: 'progress', phase: 'initializing', loaded: 1, total: 1 })
