@@ -29,6 +29,7 @@ describe('SherpaWasmRecognizer', () => {
     expect(getUserMedia).toHaveBeenCalledWith({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
     })
+    await vi.waitFor(() => expect(FakeWorker.instance).toBeDefined())
     expect(FakeWorker.instance?.scriptUrl).toBe('/speech/sherpa-onnx/recognizer.worker.js')
     expect(FakeWorker.instance?.options).toBeUndefined()
 

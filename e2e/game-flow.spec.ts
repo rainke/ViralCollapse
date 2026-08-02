@@ -3,6 +3,18 @@ import { expect, test } from '@playwright/test'
 test('microphone permission blur keeps the speech task open', async ({ page }) => {
   await page.addInitScript(() => {
     const played: string[] = []
+    class TestWorker {
+      onmessage: ((event: MessageEvent) => void) | null = null
+      onerror: ((event: ErrorEvent) => void) | null = null
+
+      postMessage(message: { type: string }) {
+        if (message.type === 'load') {
+          queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } } as MessageEvent))
+        }
+      }
+
+      terminate() {}
+    }
     class TestAudio extends EventTarget {
       constructor(readonly src: string) {
         super()
@@ -18,6 +30,10 @@ test('microphone permission blur keeps the speech task open', async ({ page }) =
     Object.defineProperty(window, 'Audio', {
       configurable: true,
       value: TestAudio,
+    })
+    Object.defineProperty(window, 'Worker', {
+      configurable: true,
+      value: TestWorker,
     })
     Object.assign(window, { __playedReadingAudio: played })
     Object.defineProperty(navigator, 'mediaDevices', {
@@ -56,6 +72,37 @@ test('microphone permission blur keeps the speech task open', async ({ page }) =
 
   await expect(page.locator('.challenge-status')).toHaveText('正在听…')
   await expect(page.getByRole('heading', { name: '心' })).toBeVisible()
+})
+
+test('installed sherpa worker initializes the offline model', async ({ page }) => {
+  test.setTimeout(120_000)
+  await page.goto('/')
+
+  const message = await page.evaluate(() => new Promise<string>((resolve, reject) => {
+    const worker = new Worker('/speech/sherpa-onnx/recognizer.worker.js')
+    const timer = window.setTimeout(() => {
+      worker.terminate()
+      reject(new Error('Timed out loading offline speech model'))
+    }, 90_000)
+    worker.onmessage = ({ data }) => {
+      if (data.type === 'ready') {
+        window.clearTimeout(timer)
+        worker.postMessage({ type: 'dispose' })
+        resolve(data.type)
+      } else if (data.type === 'error') {
+        window.clearTimeout(timer)
+        worker.terminate()
+        reject(new Error(data.message))
+      }
+    }
+    worker.onerror = () => {
+      window.clearTimeout(timer)
+      reject(new Error('Offline speech worker failed'))
+    }
+    worker.postMessage({ type: 'load' })
+  }))
+
+  expect(message).toBe('ready')
 })
 
 test('permission denial offers a required fallback task', async ({ page }) => {

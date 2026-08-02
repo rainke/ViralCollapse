@@ -18,9 +18,18 @@ export class SherpaWasmRecognizer implements OfflineRecognizer {
   private processor?: ScriptProcessorNode
   private ready?: Promise<void>
 
-  load(callbacks: OfflineRecognizerCallbacks): Promise<void> {
+  async load(callbacks: OfflineRecognizerCallbacks): Promise<void> {
     if (this.ready) return this.ready
-    this.worker = new Worker(new URL('./sherpa.worker.ts', import.meta.url), { type: 'module' })
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
+      })
+    } catch (error) {
+      const microphoneError = error instanceof Error ? error : new Error('Microphone unavailable')
+      callbacks.onError?.(microphoneError)
+      throw microphoneError
+    }
+    this.worker = new Worker('/speech/sherpa-onnx/recognizer.worker.js')
     this.ready = new Promise((resolve, reject) => {
       if (!this.worker) return reject(new Error('Worker unavailable'))
       this.worker.onmessage = ({ data }: MessageEvent<WorkerMessage>) => {
@@ -40,10 +49,7 @@ export class SherpaWasmRecognizer implements OfflineRecognizer {
   }
 
   async start(): Promise<void> {
-    if (!this.worker) throw new Error('Recognizer is not loaded')
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
-    })
+    if (!this.worker || !this.stream) throw new Error('Recognizer is not loaded')
     this.context = new AudioContext()
     this.source = this.context.createMediaStreamSource(this.stream)
     this.processor = this.context.createScriptProcessor(4096, 1, 1)

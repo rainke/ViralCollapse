@@ -1,5 +1,11 @@
 {
   "engine": "sherpa-onnx-wasm",
   "version": "pending-device-audit",
-  "files": []
+  "package": "sherpa-onnx-wasm-simd-1.12.35-vad-asr-zh_en-paraformer_small",
+  "files": [
+    "sherpa-onnx-asr.js",
+    "sherpa-onnx-wasm-main-vad-asr.js",
+    "sherpa-onnx-wasm-main-vad-asr.wasm",
+    "sherpa-onnx-wasm-main-vad-asr.data"
+  ]
 }
