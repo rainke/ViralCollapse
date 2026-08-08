@@ -6,10 +6,12 @@ describe('speech policy', () => {
     expect(normalizeRecognition(' 聽，一！ ')).toBe('听1')
   })
 
-  it('requires an exact target and confidence threshold instead of a substring', () => {
+  it('accepts any recognition containing the target character above the confidence threshold', () => {
     const target = { character: '白', pronunciations: ['bai2'] }
     expect(acceptsRecognition({ text: '白', confidence: 0.72 }, target)).toBe(true)
-    expect(acceptsRecognition({ text: '小白', confidence: 0.99 }, target)).toBe(false)
+    expect(acceptsRecognition({ text: '白白白', confidence: 0.99 }, target)).toBe(true)
+    expect(acceptsRecognition({ text: '小白', confidence: 0.99 }, target)).toBe(true)
+    expect(acceptsRecognition({ text: '黑', confidence: 0.99 }, target)).toBe(false)
     expect(acceptsRecognition({ text: '白', confidence: 0.71 }, target)).toBe(false)
   })
 
