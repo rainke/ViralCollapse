@@ -36,7 +36,7 @@ export function acceptsRecognition(
 ): boolean {
   if (result.confidence < minimumConfidence) return false
   const text = normalizeRecognition(result.text)
-  if (text !== normalizeRecognition(target.character)) return false
+  if (!text.includes(normalizeRecognition(target.character))) return false
   if (!result.pronunciation) return true
   return target.pronunciations.includes(result.pronunciation.toLowerCase())
 }
