@@ -36,4 +36,20 @@ describe('RevivalSpeechSession', () => {
     oldResult?.({ text: '白', confidence: 1, final: true })
     expect(states.at(-1)).toBe('disposed')
   })
+
+  it('forwards raw recognition results to an optional observer', async () => {
+    const recognizer = new FakeRecognizer()
+    const observed: Array<{ text: string; confidence: number; final: boolean }> = []
+    const session = new RevivalSpeechSession(
+      recognizer,
+      { character: '白', pronunciations: ['bai2'] },
+      vi.fn(),
+      1_000,
+      undefined,
+      (result) => observed.push(result),
+    )
+    await session.start()
+    recognizer.callbacks?.onResult({ text: '白', confidence: 1, final: true })
+    expect(observed).toEqual([{ text: '白', confidence: 1, final: true }])
+  })
 })
