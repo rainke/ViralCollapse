@@ -1,6 +1,6 @@
 import { getPlayerStats } from './balance'
 
-export type RevivalChallengeType = 'choice' | 'writing' | 'reading'
+export type RevivalChallengeType = 'choice' | 'writing'
 export type RevivalChallengeStatus = 'pending' | 'completed' | 'consumed'
 
 export interface RevivalChallenge {

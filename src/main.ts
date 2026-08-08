@@ -33,10 +33,6 @@ import {
   getHandwritingFeedbackSpeech,
   getHandwritingSpeechSequence,
 } from './game/revival/handwritingSpeech'
-import { getReadingSpeech } from './game/revival/readingSpeech'
-import { SherpaWasmRecognizer } from './game/revival/speech/SherpaWasmRecognizer'
-import { RevivalSpeechSession } from './game/revival/speech/RevivalSpeechSession'
-import { SPEECH_TARGETS } from './game/revival/speech/policy'
 
 const SAVE_KEY = 'viral-collapse-save'
 
@@ -323,8 +319,6 @@ function hideModal(): void {
   destroyRevivalChallenge?.()
   destroyRevivalChallenge = undefined
   handwritingQuiz.destroy()
-  modal.classList.remove('speech-revival-modal')
-  modalTitle.classList.remove('speech-character')
   modal.classList.add('is-hidden')
   modal.classList.remove('is-entering')
   modalActions.replaceChildren()
@@ -418,9 +412,9 @@ function showSkillFragment(detail: { options: UpgradeId[] }): void {
 }
 
 const revivalWords = [
-  { character: '手', reading: 'shou' },
-  { character: '心', reading: 'xin' },
-  { character: '水', reading: 'shui' },
+  { character: '手' },
+  { character: '心' },
+  { character: '水' },
 ]
 
 function showRevive(detail: {
@@ -429,34 +423,21 @@ function showRevive(detail: {
 }): void {
   destroyRevivalChallenge?.()
   handwritingQuiz.destroy()
-  modal.classList.remove('speech-revival-modal')
-  modalTitle.classList.remove('speech-character')
   const challengeId = detail.challenge.id
   const word = revivalWords[
     (scene().getWorldLevel() + detail.challenge.id.length) % revivalWords.length
   ]
   let active = true
-  let speechSession: RevivalSpeechSession | undefined
   destroyRevivalChallenge = () => {
     active = false
     handwritingQuiz.destroy()
-    void speechSession?.dispose()
-    speechSession = undefined
   }
   const succeed = () => {
     if (!active || !scene().completeRevivalChallenge(challengeId, true)) return
     if (!scene().revive(challengeId)) return
     hideModal()
   }
-  const status = document.createElement('p')
-  status.className = 'challenge-status'
-  status.setAttribute('aria-live', 'polite')
-  const retry = (message: string) => {
-    status.textContent = message
-  }
   const showHealthQuiz = () => {
-    modal.classList.remove('speech-revival-modal')
-    modalTitle.classList.remove('speech-character')
     modalTitle.textContent = '健康知识小问答'
     const worldLevel = save.run?.worldLevel ?? nextWorldLevel()
     const question = selectQuizQuestion(worldLevel, previousReviveQuestionId)
@@ -482,69 +463,6 @@ function showRevive(detail: {
       character: word.character,
     }
     showHandwritingTask(task, succeed)
-  } else {
-    modal.classList.add('speech-revival-modal')
-    modalTitle.classList.add('speech-character')
-    modalTitle.textContent = word.character
-    const target = SPEECH_TARGETS.find(
-      (item) => item.character === word.character,
-    )
-    modalBody.textContent = '点击麦克风，说出这个字'
-    const fallback = button('改做选择题', 'secondary-button', () => {
-      void speechSession?.dispose()
-      speechSession = undefined
-      showHealthQuiz()
-    })
-    const showFallback = () => {
-      modalActions.replaceChildren(fallback, status)
-    }
-    const listen = button('🎙️', 'speech-record-button', () => {
-      if (
-        !target ||
-        !navigator.mediaDevices?.getUserMedia ||
-        typeof Worker === 'undefined'
-      ) {
-        retry('语音不可用，请改做选择题。')
-        showFallback()
-        return
-      }
-      listen.disabled = true
-      listen.setAttribute('aria-label', '正在录音')
-      speechSession = new RevivalSpeechSession(
-        new SherpaWasmRecognizer(),
-        target,
-        (state) => {
-          const labels = {
-            idle: '准备好后开始语音任务', loading: '正在下载并初始化离线模型…',
-            listening: '正在听…', success: '念对啦！正在复活…', incorrect: '没有念对，请重试。',
-            timeout: '等待超时，请重试。', silent: '没有听到声音，请重试。',
-            'low-confidence': '听得不够清楚，请重试。', error: '语音不可用，请改做选择题。',
-            disposed: '语音任务已结束。',
-          }
-          retry(labels[state])
-          if (state === 'success') succeed()
-          if (state === 'error') showFallback()
-          if (['incorrect', 'timeout', 'silent', 'low-confidence'].includes(state)) {
-            listen.disabled = false
-            listen.setAttribute('aria-label', '重新录音')
-          }
-        },
-        8_000,
-        ({ loaded, total, phase }) => {
-          const percent = total === 0 ? 0 : Math.round((loaded / total) * 100)
-          retry(phase === 'downloading'
-            ? `正在下载离线模型… ${percent}%`
-            : `正在初始化离线模型… ${percent}%`)
-        },
-      )
-      void speechSession.start().catch(() => {
-        retry('权限被拒绝或模型加载失败，请改做选择题。')
-        showFallback()
-      })
-    })
-    listen.setAttribute('aria-label', '开始录音')
-    modalActions.replaceChildren(listen, status)
-    sound.playSpeech(getReadingSpeech().asset)
   }
   showModal()
 }

@@ -1,79 +1,5 @@
 import { expect, test } from '@playwright/test'
 
-test('microphone permission blur keeps the speech task open', async ({ page }) => {
-  await page.addInitScript(() => {
-    const played: string[] = []
-    class TestWorker {
-      onmessage: ((event: MessageEvent) => void) | null = null
-      onerror: ((event: ErrorEvent) => void) | null = null
-
-      postMessage(message: { type: string }) {
-        if (message.type === 'load') {
-          queueMicrotask(() => this.onmessage?.({ data: { type: 'ready' } } as MessageEvent))
-        }
-      }
-
-      terminate() {}
-    }
-    class TestAudio extends EventTarget {
-      constructor(readonly src: string) {
-        super()
-      }
-
-      pause() {}
-
-      play() {
-        played.push(this.src)
-        return Promise.resolve()
-      }
-    }
-    Object.defineProperty(window, 'Audio', {
-      configurable: true,
-      value: TestAudio,
-    })
-    Object.defineProperty(window, 'Worker', {
-      configurable: true,
-      value: TestWorker,
-    })
-    Object.assign(window, { __playedReadingAudio: played })
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: {
-        getUserMedia: async () => {
-          window.dispatchEvent(new Event('blur'))
-          const context = new AudioContext()
-          const oscillator = context.createOscillator()
-          const destination = context.createMediaStreamDestination()
-          oscillator.connect(destination)
-          oscillator.start()
-          return destination.stream
-        },
-      },
-    })
-  })
-  await page.goto('/')
-  await page.evaluate(() => {
-    window.dispatchEvent(new CustomEvent('viral:revive', {
-      detail: {
-        restart: false,
-        challenge: { id: 'permission-blur', type: 'reading', status: 'pending' },
-      },
-    }))
-  })
-
-  await expect(page.locator('.speech-character')).toHaveText('心')
-  await expect(page.getByText('点击麦克风，说出这个字')).toBeVisible()
-  await expect.poll(() => page.evaluate(() =>
-    (window as Window & { __playedReadingAudio: string[] }).__playedReadingAudio,
-  )).toEqual(['/assets/generated/speech/reading/instruction.wav'])
-  await expect(page.getByRole('button', { name: '开始录音' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '改做选择题' })).toHaveCount(0)
-
-  await page.getByRole('button', { name: '开始录音' }).click()
-
-  await expect(page.locator('.challenge-status')).toHaveText('正在听…')
-  await expect(page.getByRole('heading', { name: '心' })).toBeVisible()
-})
-
 test('installed sherpa worker initializes the offline model', async ({ page }) => {
   test.setTimeout(120_000)
   await page.goto('/')
@@ -103,29 +29,6 @@ test('installed sherpa worker initializes the offline model', async ({ page }) =
   }))
 
   expect(message).toBe('ready')
-})
-
-test('permission denial offers a required fallback task', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: { getUserMedia: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')) },
-    })
-  })
-  await page.goto('/')
-  await page.evaluate(() => {
-    window.dispatchEvent(new CustomEvent('viral:revive', {
-      detail: {
-        restart: false,
-        challenge: { id: 'permission-denied', type: 'reading', status: 'pending' },
-      },
-    }))
-  })
-  await expect(page.getByText('点击麦克风，说出这个字')).toBeVisible()
-  await page.getByRole('button', { name: '开始录音' }).click()
-  await expect(page.getByRole('button', { name: '改做选择题' })).toBeVisible()
-  await page.getByRole('button', { name: '改做选择题' }).click()
-  await expect(page.getByRole('heading', { name: '健康知识小问答' })).toBeVisible()
-  await expect(page.locator('.quiz-option')).toHaveCount(3)
 })
 
 test('choice questions play generated audio and label answers for pre-readers', async ({
@@ -1377,22 +1280,9 @@ test('one free revive is followed by a full-health level restart', async ({
 
   await defeat()
   await expect(
-    page.locator('.speech-character'),
-  ).toBeVisible()
-  await expect(page.locator('#health-value')).toHaveText('0/100')
-  await page.evaluate(() => {
-    Object.defineProperty(navigator, 'mediaDevices', {
-      value: {
-        getUserMedia: () => Promise.reject(new DOMException('Denied', 'NotAllowedError')),
-      },
-    })
-  })
-  await page.getByRole('button', { name: '开始录音' }).click()
-  await expect(page.getByRole('button', { name: '改做选择题' })).toBeVisible()
-  await page.getByRole('button', { name: '改做选择题' }).click()
-  await expect(
     page.getByRole('heading', { name: '健康知识小问答' }),
   ).toBeVisible()
+  await expect(page.locator('#health-value')).toHaveText('0/100')
   const correctAnswerSelector = [
     '[data-option-id="block-dust"]',
     '[data-option-id="in-nose"]',

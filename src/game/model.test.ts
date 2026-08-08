@@ -46,7 +46,7 @@ describe('game state', () => {
       true,
     )
     const consumed = completeRevivalChallenge(first, true, true)
-    const second = startRevivalChallenge('reading', 'death-two')
+    const second = startRevivalChallenge('writing', 'death-two')
 
     expect(canRevive(consumed, 'death-one')).toBe(false)
     expect(canRevive(second, 'death-two')).toBe(false)

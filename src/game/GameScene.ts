@@ -719,7 +719,6 @@ export class GameScene extends Phaser.Scene {
       const challengeTypes: RevivalChallengeType[] = [
         'choice',
         'writing',
-        'reading',
       ]
       const type = challengeTypes[
         (this.state.worldLevel + this.state.deaths) % challengeTypes.length
