@@ -18,13 +18,17 @@ export class RevivalSpeechSession {
     private readonly onState: (state: SpeechSessionState) => void,
     private readonly timeoutMs = 8_000,
     private readonly onProgress?: (progress: LoadProgress) => void,
+    private readonly onResult?: (result: RecognitionResult) => void,
   ) {}
 
   async start(): Promise<void> {
     const generation = ++this.generation
     this.setState('loading')
     await this.recognizer.load({
-      onResult: (result) => this.receive(result, generation),
+      onResult: (result) => {
+        this.onResult?.(result)
+        this.receive(result, generation)
+      },
       onProgress: this.onProgress,
       onError: () => this.setState('error'),
     })
